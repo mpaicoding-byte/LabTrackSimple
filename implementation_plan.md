@@ -29,14 +29,14 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 ## Phase 1 — Data Model + RLS
 
 ### Checklist
-- [ ] SQL migrations for all tables in the technical spec
-- [ ] Constraints for status enums/values are present
-- [ ] Unique constraints (single owner per household, unique household membership, unique person link per household) are present
-- [ ] Indexes for trends/search are created
-- [ ] RLS enabled on all tables
-- [ ] Policies for owner/member access implemented
-- [ ] Soft-delete filtering enforced by policies or views
-- [ ] Shared TypeScript types for core entities aligned with schema
+- [x] SQL migrations for all tables in the technical spec
+- [x] Constraints for status enums/values are present
+- [x] Unique constraints (single owner per household, unique household membership, unique person link per household) are present
+- [x] Indexes for trends/search are created
+- [x] RLS enabled on all tables
+- [x] Policies for owner/member access implemented
+- [x] Soft-delete filtering enforced by policies or views
+- [x] Shared TypeScript types for core entities aligned with schema
 
 ### Outputs
 - Migration files in `supabase/migrations/`

@@ -30,30 +30,10 @@
 - ❌ Writing test + implementation in same step
 - ❌ Running tests before dev server is started
 
-### Required Sequence
+### Required Sequence in phases
 1. **Red** → Write test → Run → Verify FAILS
 2. **Green** → Implement feature → Run → Verify PASSES  
 3. **Verify** → Run full suite → All PASS
-
----
-
-## Three-Phase Execution
-
-### Phase 1: Red (Test Only)
-- Write test in test directory (e.g., `tests/`, `__tests__/`, or `*.spec.*`/`*.test.*`)
-- Start dev server if needed
-- Run test → Must FAIL (feature doesn't exist)
-- **DO NOT touch production files**
-
-### Phase 2: Green (Implement Only)
-- Only proceed if Phase 1 has failing test
-- Modify production files to make test pass
-- Write minimal code (only what test requires)
-- **DO NOT run tests yet**
-
-### Phase 3: Verify
-- Run specific test → Must PASS
-- Run full test suite → All PASS
 
 ---
 
@@ -97,8 +77,11 @@ Then execute three separate phases sequentially.
 
 - Always verify the UI when UI changes were done using the chrome dev tools mcp.
 
-# General
+# General Rules
 
 -  your next implementation plan & checklist is in implementation_plan.md divided by phases. always update (mark as done) the checklist item in the phase that you are working whenever, the item is completed don't wait for the whole phase to be complete just mark the item that is completed.
 - Check if the app is already running first. if not then run it to test.
 - Use the chrome dev tools mcp to perform the UI testing.
+- Use NPM to access supabase cli commands.
+- If you add more function secrets, update .env.supabase and rerun supabase_push.sh for supabase update.
+- After checklist item completion, update the readme if needed accordingly for documenation.

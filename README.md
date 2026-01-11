@@ -1,24 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LabTrackSimple
+
+LabTrackSimple is a household-focused lab report tracker. The MVP centers on
+clear capture, reviewable extraction, and simple trend visibility.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the dev server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Common commands:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+node --test
+```
+
+## Stack
+
+- Next.js App Router (TypeScript)
+- Supabase (Postgres + RLS + Storage + Edge Functions)
+
+## Project Layout
+
+- `app/` - UI routes and layout
+- `features/core/types.ts` - Shared domain types
+- `supabase/migrations/` - SQL migrations (schema + RLS)
+- `docs/` - Technical spec and product notes
+- `tests/` - Node test suite
+
+## Supabase Migrations & Secrets
+
+Migrations live in `supabase/migrations/` and are pushed via the helper script.
+
+Prereqs (set in your shell, not committed):
+- `SUPABASE_ACCESS_TOKEN` (starts with `sbp_...`)
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_DB_PASSWORD`
+
+Secrets for Edge Functions are kept in `.env.supabase` (not committed). A
+template is provided at `.env.supabase.example`.
+
+### Push helper
+
+```bash
+export SUPABASE_ACCESS_TOKEN=sbp_...
+set -a; source .env; set +a
+./scripts/supabase_push.sh
+```
+
+The script:
+- links the project
+- runs `db push` (dry-run first, then apply)
+- pushes secrets from `.env.supabase`
+
+You can override the secrets file with:
+
+```bash
+SECRETS_FILE=.env.supabase ./scripts/supabase_push.sh
+```
+
+## Status
+
+MVP is in progress. See `implementation_plan.md` for the phased checklist.
 
 ## Learn More
 
