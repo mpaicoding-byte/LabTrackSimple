@@ -93,7 +93,12 @@ Then execute three separate phases sequentially.
 - `path/to/test` - Added test
 ```
 
+## Genral TDD Rules
+
+- Always verify the UI when UI changes were done using the chrome dev tools mcp.
 
 # General
 
--  your next implementation plan & checklist is in implementation_plan.md. always update the checklist whenever the item is completed don't wait for the whole phase to be complete.
+-  your next implementation plan & checklist is in implementation_plan.md divided by phases. always update (mark as done) the checklist item in the phase that you are working whenever, the item is completed don't wait for the whole phase to be complete just mark the item that is completed.
+- Check if the app is already running first. if not then run it to test.
+- Use the chrome dev tools mcp to perform the UI testing.

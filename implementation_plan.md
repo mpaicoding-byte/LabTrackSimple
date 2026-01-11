@@ -5,26 +5,26 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 ## Phase 0 — Foundations
 
 ### Checklist
-- [x] `package.json` exists with Next.js + Supabase deps
-- [x] `.env.example` includes required keys (Supabase URL, anon key, service role key for Edge Functions)
+- [x] Project scaffolded via `create-next-app` (App Router, TypeScript, ESLint, Tailwind)
 - [x] App Router shell exists with base layout and routing (`app/`)
-- [ ] Root layout exports base `metadata` (title/description) and avoids manual `<head>` tags
-- [ ] Global styles wired via `app/globals.css` imported in root layout
-- [ ] App Router special files in place: `app/loading.tsx`, `app/error.tsx` (client), `app/not-found.tsx` (or `app/global-not-found.tsx` if multiple roots)
-- [ ] Environment variable boundaries documented (public `NEXT_PUBLIC_*` vs server-only)
-- [x] Shared types module exists for core entities
+- [x] Global styles wired via `app/globals.css`
+- [x] `tsconfig.json` includes `@/*` path alias
+- [x] Root layout exports base `metadata` (title/description) and avoids manual `<head>` tags
+- [x] Update metadata copy to LabTrackSimple branding (title/description)
+- [x] Replace default home page with LabTrackSimple placeholder content
+- [x] App Router special files in place: `app/loading.tsx`, `app/error.tsx` (client), `app/not-found.tsx` (or `app/global-not-found.tsx` if multiple roots)
 
 ### Outputs
 - App boots locally without runtime errors
-- Root layout with Metadata API usage
+- Base layout + home page wired to Tailwind global styles
+- ESLint + TypeScript config from scaffold
 - Loading, error, and not-found UI for App Router
-- Types file for: household, people, lab_reports, lab_artifacts, lab_results_staging, lab_results
 
 ### Done When
-- `npm run dev` starts and renders a basic page
+- `npm run dev` starts and renders the LabTrackSimple placeholder page
+- `npm run lint` passes
 - Base metadata is exported from `app/layout.tsx`
 - Loading/error/not-found pages render for their respective states
-- Types are imported in at least one file
 
 ## Phase 1 — Data Model + RLS
 
@@ -36,6 +36,7 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 - [ ] RLS enabled on all tables
 - [ ] Policies for owner/member access implemented
 - [ ] Soft-delete filtering enforced by policies or views
+- [ ] Shared TypeScript types for core entities aligned with schema
 
 ### Outputs
 - Migration files in `supabase/migrations/`
@@ -53,6 +54,7 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 - [ ] Owner is assigned to `household_members` with role `owner`
 - [ ] Session is available on client routes
 - [ ] People management UI (create/list/rename/soft-delete)
+- [ ] Supabase client configured with `.env.example` and environment boundaries documented
 
 ### Outputs
 - Signup handler and server-side transaction for household bootstrap
