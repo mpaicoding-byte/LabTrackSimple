@@ -34,6 +34,9 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 - [x] Constraints for status enums/values are present
 - [x] Unique constraints (single owner per household, unique household membership, unique person link per household) are present
 - [x] Indexes for trends/search are created
+- [x] People include `date_of_birth`
+- [x] Lab results/staging are linked via person/report (no household_id stored)
+- [x] RLS policies updated for person-linked lab results
 - [x] RLS enabled on all tables
 - [x] Policies for owner/member access implemented
 - [x] Soft-delete filtering enforced by policies or views
@@ -50,12 +53,13 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 ## Phase 2 — Auth + Household Bootstrap
 
 ### Checklist
-- [ ] Auth flow in UI (sign in/up)
-- [ ] On signup: household + owner membership created atomically
-- [ ] Owner is assigned to `household_members` with role `owner`
-- [ ] Session is available on client routes
-- [ ] People management UI (create/list/rename/soft-delete)
-- [ ] Supabase client configured with `.env.example` and environment boundaries documented
+- [x] Auth flow in UI (sign in/up)
+- [x] On signup: household + owner membership created atomically
+- [x] On signup: owner person profile created automatically
+- [x] Owner is assigned to `household_members` with role `owner`
+- [x] Session is available on client routes
+- [x] People management UI (create/list/rename/soft-delete)
+- [x] Supabase client configured with `.env.example` and environment boundaries documented
 
 ### Outputs
 - Signup handler and server-side transaction for household bootstrap

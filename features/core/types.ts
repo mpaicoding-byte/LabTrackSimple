@@ -22,6 +22,7 @@ export type Person = {
   household_id: string;
   user_id: string | null;
   name: string;
+  date_of_birth: string | null;
   deleted_at: string | null;
   created_at: string;
 };
@@ -63,7 +64,6 @@ export type LabResultStagingStatus = "needs_review" | "approved" | "rejected";
 
 export type LabResultStaging = {
   id: string;
-  household_id: string;
   lab_report_id: string;
   artifact_id: string | null;
   extraction_run_id: string;
@@ -79,7 +79,6 @@ export type LabResultStaging = {
 
 export type LabResult = {
   id: string;
-  household_id: string;
   lab_report_id: string;
   person_id: string;
   extraction_run_id: string;

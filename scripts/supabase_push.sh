@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -f ".env" ]]; then
+  set -a
+  source ".env"
+  set +a
+fi
+
 if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
   echo "SUPABASE_ACCESS_TOKEN is required." >&2
   exit 1

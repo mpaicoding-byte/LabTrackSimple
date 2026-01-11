@@ -76,9 +76,9 @@ test("Phase 1 constraints and indexes exist", () => {
   );
 
   const indexes = [
-    "lab_results_household_person_name_idx",
+    "lab_results_person_name_idx",
     "lab_results_report_idx",
-    "lab_results_household_name_idx",
+    "lab_results_name_idx",
     "lab_results_staging_run_idx",
     "lab_results_staging_report_idx",
   ];
@@ -86,6 +86,25 @@ test("Phase 1 constraints and indexes exist", () => {
   for (const index of indexes) {
     assert.ok(sql.includes(index), `Missing index: ${index}`);
   }
+});
+
+test("Phase 1 people include date of birth", () => {
+  const sql = normalize(readMigrations());
+  assert.ok(sql.includes("date_of_birth"), "people date_of_birth missing");
+});
+
+test("Phase 1 lab results no longer store household ids", () => {
+  const sql = normalize(readMigrations());
+  assert.ok(
+    /alter table lab_results drop column (if exists )?household_id/.test(sql),
+    "lab_results household_id drop missing",
+  );
+  assert.ok(
+    /alter table lab_results_staging drop column (if exists )?household_id/.test(
+      sql,
+    ),
+    "lab_results_staging household_id drop missing",
+  );
 });
 
 test("Phase 1 RLS is enabled with policies per table", () => {
@@ -119,6 +138,46 @@ test("Phase 1 RLS is enabled with policies per table", () => {
   }
 });
 
+test("Phase 1 household_members owner policy avoids recursion", () => {
+  const sql = normalize(readMigrations());
+  const policyRegex = /create policy "household_members_owner_access"[\s\S]*?;/g;
+  const matches = sql.match(policyRegex);
+
+  assert.ok(matches?.length, "household_members owner policy missing");
+
+  const policyChunk = matches[matches.length - 1];
+
+  assert.ok(
+    policyChunk.includes("from households"),
+    "household_members owner policy should use households table",
+  );
+  assert.ok(
+    !policyChunk.includes("from household_members"),
+    "household_members owner policy should not reference household_members",
+  );
+});
+
+test("Phase 1 households policies avoid household_members recursion", () => {
+  const sql = normalize(readMigrations());
+  const policies = ["households_member_read", "households_owner_access"];
+
+  for (const policy of policies) {
+    const marker = `create policy \"${policy}\"`;
+    const policyStart = sql.lastIndexOf(marker);
+
+    assert.ok(policyStart !== -1, `households policy missing: ${policy}`);
+
+    const rest = sql.slice(policyStart);
+    const nextPolicy = rest.indexOf("create policy", marker.length);
+    const policyChunk = nextPolicy === -1 ? rest : rest.slice(0, nextPolicy);
+
+    assert.ok(
+      !policyChunk.includes("from household_members"),
+      `households policy should not reference household_members: ${policy}`,
+    );
+  }
+});
+
 test("Phase 1 shared types align with schema", () => {
   assert.ok(existsSync(typesFile), "Core types file missing");
 
@@ -136,4 +195,9 @@ test("Phase 1 shared types align with schema", () => {
   for (const typeName of requiredTypes) {
     assert.ok(types.includes(typeName), `Missing type: ${typeName}`);
   }
+
+  assert.ok(
+    types.includes("date_of_birth"),
+    "Person date_of_birth missing in types",
+  );
 });

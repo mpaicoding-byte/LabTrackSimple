@@ -18,8 +18,24 @@ Common commands:
 
 ```bash
 npm run lint
-node --test
+npm run test
+npm run test:unit
+npm run test:e2e
 ```
+
+## Testing
+
+We follow a test pyramid (unit → component → integration → E2E):
+- Unit: `node --test` for pure logic.
+- Component: React Testing Library + `vitest` (jsdom).
+- Integration: local Supabase (`npx supabase start`).
+- E2E: Playwright against `npm run dev` and local Supabase.
+
+UI changes also require MCP UI verification.
+
+E2E tests load `.env.e2e` (fallback to `.env`) for `E2E_EMAIL` and
+`E2E_PASSWORD`. Set `E2E_BASE_URL` if you are targeting a non-default server
+URL.
 
 ## Stack
 
@@ -44,6 +60,13 @@ Key expectations:
 - Start the dev server before running tests.
 - For UI changes, verify using the Chrome DevTools MCP.
 - Project-specific Codex skills live in `skills/`.
+
+## Environment
+
+Copy `.env.example` to `.env.local` and fill in your Supabase project values.
+The `NEXT_PUBLIC_` variables are safe to expose to the browser and are required
+by the client SDK. Keep any server-only secrets in `.env.local` without the
+`NEXT_PUBLIC_` prefix.
 
 ## Supabase Migrations & Secrets
 

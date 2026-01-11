@@ -30,52 +30,45 @@
 - ❌ Writing test + implementation in same step
 - ❌ Running tests before dev server is started
 
-### Required Sequence in phases
+### Required Sequence in stages
 1. **Red** → Write test → Run → Verify FAILS
 2. **Green** → Implement feature → Run → Verify PASSES  
 3. **Verify** → Run full suite → All PASS
 
 ---
 
-## Response Format
-
-When user requests a feature:
-
-```
-I'll implement [feature] using TDD:
-
-Phase 1 (Red): Write failing test ❌
-Phase 2 (Green): Implement feature ✅  
-Phase 3 (Verify): Confirm all tests pass ✅
-
-Starting Phase 1...
-```
-
-Then execute three separate phases sequentially.
-
----
-
-## Final Report Template
-
-```markdown
-## TDD Complete ✅
-
-**Feature:** [description]
-**Test:** `path/to/test` - "[test name]"
-
-### Results
-- ❌ Phase 1: FAILED (expected)
-- ✅ Phase 2: Implemented
-- ✅ Phase 3: All tests pass (X/X)
-
-### Files Modified
-- `path/to/implementation` - Added [feature]
-- `path/to/test` - Added test
-```
+Then execute three separate stages sequentially.
 
 ## Genral TDD Rules
 
 - Always verify the UI when UI changes were done using the chrome dev tools mcp.
+
+# Testing Methodology (Best Practice)
+
+Follow a test pyramid with explicit scope and tooling. Prefer fast tests close
+to the code and add end-to-end coverage for critical flows.
+
+### Layers
+- Unit tests: pure logic (formatters, validators, mappers). Use `node:test` or
+  `vitest` with minimal mocking. Colocate near the code (`features/*/__tests__`).
+- Component tests: UI logic in isolation (AuthScreen, PeopleManager). Use
+  React Testing Library + `vitest` + `jsdom`. Mock Supabase via adapters.
+- Integration tests: Supabase + RLS + DB triggers. Use local Supabase
+  (`npx supabase start`) and run tests against the local stack.
+- E2E tests: Full user journeys (signup → sign-in → people management). Use
+  Playwright against `npm run dev` and local Supabase.
+
+### Requirements
+- Any auth/people/report feature change must include at least one E2E flow test.
+- UI changes require component tests plus MCP UI verification.
+- After migrations or critical flow changes, verify data in the database
+  (manual SQL checks or integration tests) to confirm expected rows/state.
+- Keep tests near code unless the framework requires otherwise.
+
+### Coverage Expectations
+- Cover happy-path success and explicit failure/error states.
+- Include validation/empty-state behavior and permission/role boundaries.
+- Verify all the flows.
 
 # General Rules
 
@@ -84,4 +77,8 @@ Then execute three separate phases sequentially.
 - Use the chrome dev tools mcp to perform the UI testing.
 - Use NPM to access supabase cli commands.
 - If you add more function secrets, update .env.supabase and rerun supabase_push.sh for supabase update.
+- You can also login to supabase to verify the data if you want to.
 - After checklist item completion, update the readme if needed accordingly for documenation.
+- Use --isolated to run multiple browser instances for chrome dev tools.
+- You perform the migrations in db if user approves.
+- Don't ask user to access any UI to perform things, take permission from the user and do that by userself using the chrome dev tools mcp

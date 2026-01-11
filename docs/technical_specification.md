@@ -47,6 +47,7 @@ Rationale: keeps membership explicit and simple; no email invite flow in MVP.
 - `household_id uuid not null references households(id)`
 - `user_id uuid null`
 - `name text not null`
+- `date_of_birth date null`
 - `deleted_at timestamptz null`
 - `created_at timestamptz default now()`
 Rationale: `user_id` links a person to a login when available, while still allowing owner-managed profiles.
@@ -75,7 +76,6 @@ Rationale: `user_id` links a person to a login when available, while still allow
 
 #### `lab_results_staging`
 - `id uuid pk`
-- `household_id uuid not null references households(id)`
 - `lab_report_id uuid not null references lab_reports(id)`
 - `artifact_id uuid null references lab_artifacts(id)`
 - `extraction_run_id uuid not null`
@@ -90,7 +90,6 @@ Rationale: `user_id` links a person to a login when available, while still allow
 
 #### `lab_results`
 - `id uuid pk`
-- `household_id uuid not null references households(id)`
 - `lab_report_id uuid not null references lab_reports(id)`
 - `person_id uuid not null references people(id)`
 - `extraction_run_id uuid not null`
@@ -103,9 +102,9 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - `deleted_at timestamptz null`
 
 ### 2.2 Indexes
-- `lab_results` composite index: `(household_id, person_id, name_raw)`
+- `lab_results` composite index: `(person_id, name_raw)`
 - `lab_results` index on `lab_report_id`
-- `lab_results` index on `(household_id, name_raw)` for cross-person search within a household
+- `lab_results` index on `(name_raw)` for cross-person search within a household
 - `lab_results_staging` index on `(extraction_run_id)` for quick run grouping
 - `lab_results_staging` index on `(lab_report_id)` for review queries
 

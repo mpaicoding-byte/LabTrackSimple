@@ -11,6 +11,7 @@ test("Supabase CLI helper script exists with required commands", () => {
   assert.ok(existsSync(scriptPath), "supabase_push.sh should exist");
 
   const script = readFileSync(scriptPath, "utf8");
+  assert.match(script, /source "?\.env"?/);
   assert.match(script, /supabase@latest link/);
   assert.match(script, /supabase@latest db push/);
   assert.match(script, /supabase@latest secrets set/);

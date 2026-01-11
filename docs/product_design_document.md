@@ -35,6 +35,8 @@ Rationale: keep privacy tight while avoiding onboarding complexity.
 ### 3.1 People
 - Create, list, rename, and soft-delete people.
 - Each person belongs to exactly one household.
+- Capture date of birth for each person (optional).
+- Display date of birth on the person card when present and allow edits in the create/rename flows.
 - Household owner can link a person profile to an existing user account; members can log in and see only their own data (reports/results), while the owner can see all household people and reports.
 Rationale: supports family participation without email invites or role UI in MVP.
 Note: members see data only after the owner links their account to a person profile.
@@ -127,6 +129,7 @@ Note: a household is created on signup, with the user as owner.
 - Create household (auto on signup) → create person → create report → upload artifact → extract → review → commit.
 - Search test name → see numeric trend across dates.
 - Text-only results appear in history.
+- Person date of birth saves and displays when provided.
 - RLS + private storage enforced.
 - Link a member account to a person; member can log in and see only their own data.
 - Re-extraction creates a new run and preserves data integrity.
@@ -137,4 +140,3 @@ Note: a household is created on signup, with the user as owner.
 - Unit standardization.
 - Email invites, invite status UI, and richer household roles.
 - Cross-household sharing and broader collaboration.
-
