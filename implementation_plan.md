@@ -13,6 +13,7 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 - [x] Update metadata copy to LabTrackSimple branding (title/description)
 - [x] Replace default home page with LabTrackSimple placeholder content
 - [x] App Router special files in place: `app/loading.tsx`, `app/error.tsx` (client), `app/not-found.tsx` (or `app/global-not-found.tsx` if multiple roots)
+- [x] Document agent workflow expectations in `README.md`
 
 ### Outputs
 - App boots locally without runtime errors

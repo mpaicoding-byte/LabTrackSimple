@@ -34,6 +34,17 @@ node --test
 - `docs/` - Technical spec and product notes
 - `tests/` - Node test suite
 
+## Agent Workflow
+
+If you are working via Codex, follow the rules in `AGENTS.md` (architecture,
+TDD sequence, and UI verification requirements).
+
+Key expectations:
+- Keep `implementation_plan.md` checklists up to date as items are completed.
+- Start the dev server before running tests.
+- For UI changes, verify using the Chrome DevTools MCP.
+- Project-specific Codex skills live in `skills/`.
+
 ## Supabase Migrations & Secrets
 
 Migrations live in `supabase/migrations/` and are pushed via the helper script.
