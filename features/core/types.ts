@@ -23,6 +23,7 @@ export type Person = {
   user_id: string | null;
   name: string;
   date_of_birth: string | null;
+  gender: "female" | "male" | null;
   deleted_at: string | null;
   created_at: string;
 };

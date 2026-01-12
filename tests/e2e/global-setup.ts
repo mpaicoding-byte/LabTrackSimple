@@ -23,9 +23,14 @@ export default async function globalSetup(config: FullConfig) {
 
   fs.mkdirSync(path.dirname(storageStatePath), { recursive: true });
 
-  const browser = await chromium.launch({
-    channel: "chrome",
+  const useChromeChannel = process.env.PW_USE_CHROME !== "false";
+  const launchOptions = {
     args: ["--disable-crashpad", "--disable-features=Crashpad"],
+  } as const;
+
+  const browser = await chromium.launch({
+    ...(useChromeChannel ? { channel: "chrome" } : {}),
+    ...launchOptions,
   });
   const page = await browser.newPage();
 
@@ -33,7 +38,19 @@ export default async function globalSetup(config: FullConfig) {
   await page.getByLabel("Email").fill(email ?? "");
   await page.getByLabel("Password").fill(password ?? "");
   await page.locator("form").getByRole("button", { name: "Sign in" }).click();
-  await page.getByText("Signed in as").waitFor();
+
+  await page.waitForLoadState("networkidle");
+  const completionHeading = page.getByRole("heading", {
+    name: /complete your profile/i,
+  });
+  if (await completionHeading.isVisible()) {
+    await page.getByLabel("Date of birth").fill("1980-01-01");
+    await page.getByLabel("Gender").selectOption("female");
+    await page.getByRole("button", { name: /save profile/i }).click();
+    await page.waitForURL("**/people");
+  } else {
+    await page.getByText("Signed in as").waitFor();
+  }
 
   await page.context().storageState({ path: storageStatePath });
   await browser.close();

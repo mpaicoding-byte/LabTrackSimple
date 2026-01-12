@@ -48,33 +48,40 @@ vi.mock("@/features/core/supabaseClient", () => ({
   getSupabaseBrowserClient: () => supabaseMock,
 }));
 
+const sessionMock = { user: { id: "user-1", email: "owner@example.com" } };
+
 vi.mock("@/features/auth/SessionProvider", () => ({
   useSession: () => ({
-    session: { user: { id: "user-1", email: "owner@example.com" } },
+    session: sessionMock,
     loading: false,
     error: null,
   }),
 }));
 
-test("owners can include a date of birth when creating a person", async () => {
+test("owners can include a date of birth and gender when creating a person", async () => {
   render(<PeopleManager />);
 
   const nameInput = await screen.findByPlaceholderText(/full name/i);
   const dobInput = screen.getByLabelText(/date of birth/i);
+  const genderSelect = screen.getByLabelText(/gender/i);
   const addButton = screen.getByRole("button", { name: /add person/i });
+
+  expect(addButton).toBeDisabled();
+
+  await userEvent.type(nameInput, "Ada Lovelace");
+  await userEvent.type(dobInput, "1990-01-01");
+  await userEvent.selectOptions(genderSelect, "female");
 
   await waitFor(() => {
     expect(addButton).toBeEnabled();
   });
-
-  await userEvent.type(nameInput, "Ada Lovelace");
-  await userEvent.type(dobInput, "1990-01-01");
   await userEvent.click(addButton);
 
   await waitFor(() => {
     expect(insertMock).toHaveBeenCalledWith(
       expect.objectContaining({
         date_of_birth: "1990-01-01",
+        gender: "female",
       }),
     );
   });

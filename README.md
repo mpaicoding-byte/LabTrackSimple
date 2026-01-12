@@ -36,6 +36,13 @@ UI changes also require MCP UI verification.
 E2E tests load `.env.e2e` (fallback to `.env`) for `E2E_EMAIL` and
 `E2E_PASSWORD`. Set `E2E_BASE_URL` if you are targeting a non-default server
 URL.
+Set `PW_USE_CHROME=false` to use the bundled Chromium instead of the system
+Chrome channel.
+
+## Onboarding
+
+After first login, owners must complete their profile (date of birth + gender)
+at `/onboarding/profile` before accessing the rest of the app.
 
 ## Stack
 

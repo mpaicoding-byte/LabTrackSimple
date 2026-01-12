@@ -9,6 +9,7 @@ type PersonRow = {
   id: string;
   name: string;
   date_of_birth: string | null;
+  gender: "female" | "male" | null;
   created_at: string;
   deleted_at: string | null;
 };
@@ -25,6 +26,15 @@ const formatDate = (value: string) =>
     year: "numeric",
   });
 
+const genderOptions = [
+  { value: "", label: "Select gender" },
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+];
+
+const formatGender = (value: "female" | "male") =>
+  value === "female" ? "Female" : "Male";
+
 export const PeopleManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const { session, loading } = useSession();
@@ -33,9 +43,11 @@ export const PeopleManager = () => {
   const [people, setPeople] = useState<PersonRow[]>([]);
   const [newName, setNewName] = useState("");
   const [newDateOfBirth, setNewDateOfBirth] = useState("");
+  const [newGender, setNewGender] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingDateOfBirth, setEditingDateOfBirth] = useState("");
+  const [editingGender, setEditingGender] = useState("");
   const [status, setStatus] = useState<Status>({
     type: "idle",
     message: "",
@@ -70,7 +82,7 @@ export const PeopleManager = () => {
 
       const { data, error } = await supabase
         .from("people")
-        .select("id, name, date_of_birth, created_at, deleted_at")
+        .select("id, name, date_of_birth, gender, created_at, deleted_at")
         .eq("household_id", targetHouseholdId)
         .is("deleted_at", null)
         .order("created_at", { ascending: true });
@@ -99,7 +111,7 @@ export const PeopleManager = () => {
   }, [householdId, loadPeople]);
 
   const createPerson = async () => {
-    if (!householdId || !newName.trim()) {
+    if (!householdId || !newName.trim() || !newDateOfBirth || !newGender) {
       return;
     }
 
@@ -108,6 +120,7 @@ export const PeopleManager = () => {
       household_id: householdId,
       name: newName.trim(),
       date_of_birth: newDateOfBirth || null,
+      gender: newGender || null,
     });
 
     if (error) {
@@ -117,6 +130,7 @@ export const PeopleManager = () => {
 
     setNewName("");
     setNewDateOfBirth("");
+    setNewGender("");
     await loadPeople(householdId);
     setStatus({ type: "success", message: "Person created." });
   };
@@ -125,8 +139,9 @@ export const PeopleManager = () => {
     personId: string,
     nextName: string,
     nextDateOfBirth: string,
+    nextGender: string,
   ) => {
-    if (!nextName.trim()) {
+    if (!nextName.trim() || !nextDateOfBirth || !nextGender) {
       return;
     }
 
@@ -136,6 +151,7 @@ export const PeopleManager = () => {
       .update({
         name: nextName.trim(),
         date_of_birth: nextDateOfBirth || null,
+        gender: nextGender || null,
       })
       .eq("id", personId);
 
@@ -147,6 +163,7 @@ export const PeopleManager = () => {
     setEditingId(null);
     setEditingName("");
     setEditingDateOfBirth("");
+    setEditingGender("");
     if (householdId) {
       await loadPeople(householdId);
     }
@@ -172,6 +189,8 @@ export const PeopleManager = () => {
   };
 
   const canManage = role === "owner";
+  const canCreate =
+    canManage && newName.trim() && newDateOfBirth && newGender;
 
   return (
     <div className="min-h-screen bg-[conic-gradient(from_120deg_at_50%_0%,#fbf6e9,#f4efe4,#e7e5df,#f8f3ea)] text-slate-900">
@@ -216,10 +235,25 @@ export const PeopleManager = () => {
                   disabled={!canManage}
                 />
               </label>
+              <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Gender
+                <select
+                  value={newGender}
+                  onChange={(event) => setNewGender(event.target.value)}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-normal text-slate-900 shadow-sm outline-none transition focus:border-slate-400"
+                  disabled={!canManage}
+                >
+                  {genderOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 type="button"
                 onClick={createPerson}
-                disabled={!canManage || !newName.trim()}
+                disabled={!canCreate}
                 className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/25 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 Add person
@@ -275,6 +309,22 @@ export const PeopleManager = () => {
                               className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900"
                             />
                           </label>
+                          <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Gender
+                            <select
+                              value={editingGender}
+                              onChange={(event) =>
+                                setEditingGender(event.target.value)
+                              }
+                              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900"
+                            >
+                              {genderOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
                         </div>
                       ) : (
                         <div>
@@ -289,6 +339,15 @@ export const PeopleManager = () => {
                               Born {formatDate(person.date_of_birth)}
                             </p>
                           ) : null}
+                          {person.gender ? (
+                            <p className="text-xs text-slate-500">
+                              Gender {formatGender(person.gender)}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-amber-600">
+                              Gender missing
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -302,10 +361,16 @@ export const PeopleManager = () => {
                                   person.id,
                                   editingName,
                                   editingDateOfBirth,
+                                  editingGender,
                                 )
                               }
                               className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
-                              disabled={!canManage}
+                              disabled={
+                                !canManage ||
+                                !editingName.trim() ||
+                                !editingDateOfBirth ||
+                                !editingGender
+                              }
                             >
                               Save
                             </button>
@@ -315,6 +380,7 @@ export const PeopleManager = () => {
                                 setEditingId(null);
                                 setEditingName("");
                                 setEditingDateOfBirth("");
+                                setEditingGender("");
                               }}
                               className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
                             >
@@ -331,6 +397,7 @@ export const PeopleManager = () => {
                                 setEditingDateOfBirth(
                                   person.date_of_birth ?? "",
                                 );
+                                setEditingGender(person.gender ?? "");
                               }}
                               className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
                               disabled={!canManage}

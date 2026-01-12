@@ -47,8 +47,15 @@ test.describe("auth flow", () => {
       .locator("form")
       .getByRole("button", { name: "Create account" })
       .click();
+    const successMessage = page.getByText(/account created/i);
+    const completionHeading = page.getByRole("heading", {
+      name: /complete your profile/i,
+    });
 
-    await expect(page.getByText(/account created/i)).toBeVisible();
+    await Promise.race([
+      successMessage.waitFor({ state: "visible" }),
+      completionHeading.waitFor({ state: "visible" }),
+    ]);
   });
 
   test("sign in shows session and sign out clears it", async ({ page }) => {

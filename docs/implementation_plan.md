@@ -56,6 +56,7 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 - [x] Auth flow in UI (sign in/up)
 - [x] On signup: household + owner membership created atomically
 - [x] On signup: owner person profile created automatically
+- [x] Owner profile completion gate (DOB + gender) after first login
 - [x] Owner is assigned to `household_members` with role `owner`
 - [x] Session is available on client routes
 - [x] People management UI (create/list/rename/soft-delete)

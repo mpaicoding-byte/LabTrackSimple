@@ -3,6 +3,7 @@ import { Fraunces, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 import { SessionProvider } from "@/features/auth/SessionProvider";
+import { ProfileCompletionGate } from "@/features/onboarding/ProfileCompletionGate";
 
 const bodyFont = Space_Grotesk({
   variable: "--font-body",
@@ -29,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${bodyFont.variable} ${displayFont.variable} antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ProfileCompletionGate>{children}</ProfileCompletionGate>
+        </SessionProvider>
       </body>
     </html>
   );

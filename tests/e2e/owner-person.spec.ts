@@ -8,6 +8,7 @@ test.describe("owner person flow", () => {
     ).toBeVisible();
     await expect(page.getByPlaceholder("Full name")).toBeEnabled();
     await expect(page.getByLabel("Date of birth")).toBeVisible();
+    await expect(page.getByLabel("Gender")).toBeVisible();
   });
 
   test("date of birth persists on the person card after reload", async ({
@@ -21,6 +22,7 @@ test.describe("owner person flow", () => {
     const dobInput = page.getByLabel("Date of birth").first();
     await dobInput.fill(dob);
     await expect(dobInput).toHaveValue(dob);
+    await page.getByLabel("Gender").selectOption("female");
     await page.getByRole("button", { name: "Add person" }).click();
     await expect(page.getByText("Person created.")).toBeVisible();
 
