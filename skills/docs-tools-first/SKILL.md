@@ -1,6 +1,6 @@
 ---
-name: docs-tools-first
-description: Read official documentation using mcp servers: Context7 and Tavily before implementing or wiring code for libraries, frameworks, or integrations. Use this when adding new dependencies, configuring SDKs, or changing how an API is used, writing code etc., to ensure best practices and current guidance are followed.
+name: docs-and-specs-first
+description: Consult official docs via Context7/Tavily before implementing changes, and apply the repo's spec-generation workflow when asked to create plans/specs. Use for new dependencies, SDK/API wiring, or when producing feature docs.
 ---
 
 # Docs Tools First
@@ -18,9 +18,6 @@ Clarify the library, framework, API, or integration. If the version or provider 
 ### 2) Read docs with Context7 (primary)
 
 Use Context7 to resolve the library ID and query the exact topic needed. Capture recommended patterns, required configuration, and warnings.
-
-- `resolve-library-id` for the package name
-- `query-docs` for specific tasks (auth, setup, migration, etc.)
 - Prefer the newest stable docs unless the user specifies a version
 
 ### 3) Validate with Tavily (secondary)
@@ -39,5 +36,17 @@ Only after docs are read and summarized, implement the minimal code required by 
 
 - Do not implement or wire code before consulting docs.
 - Prefer official sources and primary documentation over blogs.
-- Note the version and doc source when relevant.
 - Keep Context7 and Tavily calls focused to stay within tool limits.
+
+## Document Generation (Repo Convention)
+
+Use this when the user asks for specs, plans, or checklists.
+
+- Create docs in `docs/current specs/(feature-name)` with clear, task-specific filenames.
+- For new features, generate this set by default:
+  - `*_spec.md` (problem, goals, non-goals, flow, data, UX, validation, edge cases)
+  - `*_user_stories_acceptance_criteria.md`
+  - `*_checklist.md` (Red/Green/Verify)
+- Keep content short, explicit, and testable; avoid duplicating what already exists.
+- If a spec replaces an older one, move the old doc into `docs/archived specs/(feature-name)/`.
+- Create multiple features if the implementation is big.
