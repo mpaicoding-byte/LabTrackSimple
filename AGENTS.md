@@ -76,8 +76,9 @@ to the code and add end-to-end coverage for critical flows.
 - Check if the app is already running first. if not then run it to test.
 - Use the chrome dev tools mcp to perform the UI testing.
 - Use NPM to access supabase cli commands.
+- Start local Supabase with `npx supabase start` (if it fails to connect to Docker, ensure Docker Desktop is running and retry).
 - If you add more function secrets, update .env.supabase and rerun supabase_push.sh for supabase update.
-- You can also login to supabase to verify the data if you want to.
+- Use local Supabase for testing/verification; avoid online Supabase login unless explicitly requested.
 - After checklist item completion, update the readme if needed accordingly for documenation.
 - Use --isolated to run multiple browser instances for chrome dev tools.
 - You perform the migrations in db if user approves.

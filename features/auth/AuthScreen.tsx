@@ -1,10 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { TestTube2, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 import { useSession } from "@/features/auth/SessionProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -15,19 +19,28 @@ type Status = {
 
 export const AuthScreen = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const { session, loading } = useSession();
+  const { session, loading: sessionLoading } = useSession();
+  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [householdName, setHouseholdName] = useState("");
   const [status, setStatus] = useState<Status>({
     type: "idle",
     message: "",
   });
 
+  // Redirect to dashboard if already signed in
+  useEffect(() => {
+    if (!sessionLoading && session) {
+      router.push("/");
+    }
+  }, [session, sessionLoading, router]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setStatus({ type: "loading", message: "Working on it..." });
+    setStatus({ type: "loading", message: "" });
 
     if (mode === "sign-in") {
       const { error } = await supabase.auth.signInWithPassword({
@@ -40,13 +53,12 @@ export const AuthScreen = () => {
         return;
       }
 
-      setStatus({
-        type: "success",
-        message: "Signed in. Your session is ready.",
-      });
+      setStatus({ type: "success", message: "Signed in successfully!" });
+      router.push("/");
       return;
     }
 
+    // Sign up mode
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -64,205 +76,211 @@ export const AuthScreen = () => {
 
     setStatus({
       type: "success",
-      message:
-        "Account created. We will bootstrap your household automatically.",
+      message: "Account created! Check your email to confirm your account.",
     });
   };
 
-  const handleSignOut = async () => {
-    setStatus({ type: "loading", message: "Signing out..." });
-    const { error } = await supabase.auth.signOut();
+  // Show loading while checking session
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-background" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-background to-background" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse" />
 
-    if (error) {
-      setStatus({ type: "error", message: error.message });
-      return;
-    }
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-500 relative z-10" />
+      </div>
+    );
+  }
 
-    setStatus({ type: "success", message: "Signed out." });
-  };
+  // If already logged in, show redirecting message
+  if (session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-background" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-background to-background" />
 
-  const headline =
-    mode === "sign-in" ? "Welcome back" : "Create your household";
-  const subhead =
-    mode === "sign-in"
-      ? "Pick up where your lab reviews left off."
-      : "Start a private, shared place for your household lab records.";
+        <div className="text-center relative z-10 glass p-8 rounded-2xl">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-500 mx-auto mb-4" />
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f8f3ea_0%,#f4efe4_45%,#e6e5e1_100%)] text-slate-900">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 lg:grid-cols-[1.1fr,0.9fr] lg:px-10">
-        <aside className="flex flex-col justify-between gap-12 rounded-[32px] border border-slate-200/70 bg-white/70 p-10 shadow-[0_25px_80px_-60px_rgba(15,23,42,0.6)] backdrop-blur">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-slate-100">
-              LabTrackSimple
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Aurora Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo */}
+        <div className="flex justify-center mb-10">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/30 text-white">
+              <TestTube2 className="h-8 w-8" />
             </div>
-            <h1 className="font-display text-4xl leading-tight text-slate-900 sm:text-5xl">
-              Calm signal,
-              <br />
-              clear cadence.
-            </h1>
-            <p className="text-base leading-7 text-slate-600 sm:text-lg">
-              Focus on the data that matters. Capture lab reports, stage
-              extracted results, and review trends without the noise.
+            <span className="text-3xl font-display font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-white/70 bg-clip-text text-transparent">LabTrack</span>
+          </div>
+        </div>
+
+        <Card className="border-zinc-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl shadow-2xl">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl text-zinc-900 dark:text-white font-display">
+              {mode === "sign-in" ? "Welcome back" : "Create your account"}
+            </CardTitle>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+              {mode === "sign-in"
+                ? "Sign in to access your lab reports"
+                : "Start tracking your household health data"}
             </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              {
-                label: "Household-first",
-                value: "Owner-led privacy",
-              },
-              {
-                label: "Review ready",
-                value: "Human-approved results",
-              },
-              {
-                label: "Traceable",
-                value: "Artifacts stay connected",
-              },
-              {
-                label: "Trend friendly",
-                value: "Numeric + text history",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-slate-200 bg-white/90 p-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  {item.label}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </aside>
+          </CardHeader>
 
-        <section className="rounded-[32px] border border-slate-200/80 bg-white/80 p-8 shadow-[0_30px_80px_-60px_rgba(15,23,42,0.55)] backdrop-blur">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-2xl text-slate-900">
-                {headline}
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">{subhead}</p>
-            </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              Phase 2
-            </span>
-          </div>
-
-          <div className="mt-6 flex gap-2 rounded-full bg-slate-100 p-1 text-sm font-medium">
-            {[
-              { id: "sign-in", label: "Sign in" },
-              { id: "sign-up", label: "Create account" },
-            ].map((item) => (
+          <CardContent className="pt-6">
+            {/* Mode Toggle */}
+            <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-black/20 rounded-xl mb-8 border border-zinc-200 dark:border-white/5">
               <button
-                key={item.id}
                 type="button"
-                onClick={() => setMode(item.id as AuthMode)}
-                className={`flex-1 rounded-full px-3 py-2 transition ${
-                  mode === item.id
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600"
-                }`}
+                onClick={() => setMode("sign-in")}
+                className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-lg transition-all duration-300 ${mode === "sign-in"
+                  ? "bg-white dark:bg-white/10 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg dark:shadow-indigo-500/10 border border-zinc-200 dark:border-white/10"
+                  : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/5"
+                  }`}
               >
-                {item.label}
+                Sign in
               </button>
-            ))}
-          </div>
+              <button
+                type="button"
+                onClick={() => setMode("sign-up")}
+                className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-lg transition-all duration-300 ${mode === "sign-up"
+                  ? "bg-white dark:bg-white/10 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg dark:shadow-indigo-500/10 border border-zinc-200 dark:border-white/10"
+                  : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/5"
+                  }`}
+              >
+                Create account
+              </button>
+            </div>
 
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-slate-400"
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-              />
-            </label>
-
-            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-              Password
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-slate-400"
-                placeholder="Create a strong passphrase"
-                autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
-                required
-              />
-            </label>
-
-            {mode === "sign-up" ? (
-              <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-                Household label (optional)
-                <input
-                  type="text"
-                  value={householdName}
-                  onChange={(event) => setHouseholdName(event.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-slate-400"
-                  placeholder="The Martinez household"
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1"
+                >
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
                 />
-              </label>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={loading || status.type === "loading"}
-              className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {mode === "sign-in" ? "Sign in" : "Create account"}
-            </button>
-          </form>
-
-          {status.message ? (
-            <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
-                status.type === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-700"
-              }`}
-            >
-              {status.message}
-            </div>
-          ) : null}
-
-          {session ? (
-            <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
-              <p className="text-sm font-semibold text-slate-700">
-                Signed in as
-              </p>
-              <p className="mt-1 text-sm text-slate-500">{session.user.email}</p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Link
-                  href="/people"
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-                >
-                  Manage people
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                >
-                  Sign out
-                </button>
               </div>
-            </div>
-          ) : null}
 
-          <p className="mt-6 text-xs text-slate-500">
-            New households are created automatically on sign up. If email
-            confirmation is enabled, confirm the email and sign in to continue.
-          </p>
-        </section>
+              {/* Password */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={mode === "sign-in" ? "Enter your password" : "Create a password"}
+                    autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+                    required
+                    className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Household Name (Sign up only) */}
+              {mode === "sign-up" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-300">
+                  <label
+                    htmlFor="household"
+                    className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1"
+                  >
+                    Household name{" "}
+                    <span className="text-zinc-400 dark:text-zinc-500 font-normal">(optional)</span>
+                  </label>
+                  <Input
+                    id="household"
+                    type="text"
+                    value={householdName}
+                    onChange={(e) => setHouseholdName(e.target.value)}
+                    placeholder="e.g., The Smith Family"
+                    className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
+                  />
+                </div>
+              )}
+
+              {/* Status Message */}
+              {status.message && (
+                <div
+                  className={`p-4 rounded-xl text-sm flex items-center animate-in fade-in duration-300 ${status.type === "error"
+                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    }`}
+                >
+                  {status.message}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={status.type === "loading"}
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/25 border-0 text-base font-semibold"
+                size="lg"
+              >
+                {status.type === "loading" ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {mode === "sign-in" ? "Signing in..." : "Creating account..."}
+                  </>
+                ) : mode === "sign-in" ? (
+                  "Sign in"
+                ) : (
+                  "Create account"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-zinc-500 mt-8">
+          {mode === "sign-up"
+            ? "By creating an account, you agree to our terms of service."
+            : "Secure authentication powered by Supabase."}
+        </p>
       </div>
     </div>
   );

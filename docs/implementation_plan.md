@@ -73,12 +73,13 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 ## Phase 3 — Reports + Artifacts
 
 ### Checklist
-- [ ] Report creation form (person, date, source, notes)
-- [ ] `lab_artifacts` row-first upload flow implemented
-- [ ] Private storage bucket configured
-- [ ] Signed URL viewing for artifacts
-- [ ] Artifact status updates (`pending` → `ready`/`failed`)
-- [ ] Storage policy/RLS for bucket access documented
+- [x] Report creation form (person, date, source, notes)
+- [x] `lab_artifacts` row-first upload flow implemented
+- [x] Private storage bucket configured
+- [x] Signed URL viewing for artifacts
+- [x] Artifact status updates (`pending` → `ready`/`failed`)
+- [x] Storage policy/RLS for bucket access documented
+- [x] Testing uses local Supabase; AGENTS guidance avoids online login
 
 ### Outputs
 - Report creation page

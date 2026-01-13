@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 import { useSession } from "@/features/auth/SessionProvider";
@@ -141,85 +142,105 @@ export const ProfileCompletionScreen = () => {
 
   if (loading || loadingProfile) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f8f3ea_0%,#f2efe7_50%,#e6e4df_100%)] text-slate-900">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-20">
-          <div className="h-12 w-12 animate-pulse rounded-full bg-slate-200" />
-          <p className="text-sm text-slate-500">Loading your profile...</p>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-background to-background" />
+
+        <div className="flex flex-col items-center gap-4 relative z-10 p-8 glass rounded-3xl">
+          <Loader2 className="h-10 w-10 animate-spin text-indigo-600 dark:text-indigo-500" />
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Checking profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f8f3ea_0%,#f2efe7_50%,#e6e4df_100%)] text-slate-900">
-      <div className="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-16">
-        <header className="rounded-[28px] border border-slate-200/70 bg-white/75 p-8 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.55)] backdrop-blur">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
-            Required
-          </p>
-          <h1 className="mt-3 font-display text-3xl text-slate-900 sm:text-4xl">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Aurora Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="mx-auto flex max-w-2xl w-full flex-col gap-8 relative z-10">
+        <header className="glass p-8 rounded-3xl shadow-2xl text-center md:text-left">
+          <div className="inline-flex items-center justify-center p-2 bg-indigo-500/10 rounded-lg text-indigo-400 mb-4">
+            <span className="text-xs font-bold uppercase tracking-wider">Required Step</span>
+          </div>
+          <h1 className="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
             Complete your profile
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            We need your date of birth and gender before you can add or review
-            lab reports.
+          <p className="mt-2 text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            We need your date of birth and gender to personalize your lab ranges and reports correctly.
           </p>
         </header>
 
-        <section className="rounded-[28px] border border-slate-200/80 bg-white/80 p-8 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.6)] backdrop-blur">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-              Date of birth
+        <section className="glass p-8 rounded-3xl shadow-2xl">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
+                Date of birth
+              </label>
               <input
                 type="date"
                 value={dateOfBirth}
                 onChange={(event) => setDateOfBirth(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-slate-400"
+                className="w-full bg-white dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
                 required
               />
-            </label>
-            {dateError ? (
-              <p className="text-xs font-semibold text-rose-600">
-                {dateError}
-              </p>
-            ) : null}
+              {dateError && (
+                <p className="text-xs font-semibold text-red-400 mt-1 ml-1 animate-pulse">
+                  {dateError}
+                </p>
+              )}
+            </div>
 
-            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-              Gender
-              <select
-                value={gender}
-                onChange={(event) => setGender(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-slate-400"
-                required
-              >
-                {genderOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
+                Gender
+              </label>
+              <div className="relative">
+                <select
+                  value={gender}
+                  onChange={(event) => setGender(event.target.value)}
+                  className="w-full appearance-none bg-white dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                  required
+                >
+                  {genderOptions.map((option) => (
+                    <option key={option.value} value={option.value} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500 dark:text-zinc-400">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                </div>
+              </div>
+            </div>
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="w-full h-12 mt-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/25 border-0 text-base font-semibold transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!canSubmit || status.type === "loading"}
             >
-              Save profile
+              {status.type === "loading" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" /> Saving...
+                </span>
+              ) : "Save Profile"}
             </button>
           </form>
 
-          {status.message ? (
+          {status.message && (
             <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
-                status.type === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-700"
-              }`}
+              className={`mt-6 rounded-xl border px-4 py-3 text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2 ${status.type === "error"
+                ? "border-red-500/20 bg-red-500/10 text-red-400"
+                : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                }`}
             >
               {status.message}
             </div>
-          ) : null}
+          )}
         </section>
       </div>
     </div>

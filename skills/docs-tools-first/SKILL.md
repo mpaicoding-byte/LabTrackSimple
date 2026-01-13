@@ -49,4 +49,6 @@ Use this when the user asks for specs, plans, or checklists.
   - `*_checklist.md` (Red/Green/Verify)
 - Keep content short, explicit, and testable; avoid duplicating what already exists.
 - If a spec replaces an older one, move the old doc into `docs/archived specs/(feature-name)/`.
-- Create multiple features if the implementation is big.
+- Create multiple feature folders if the implementation is big.
+- Mark checklist items as completed immediately after each item is done; do not wait for the whole phase to finish.
+- Add a "Comments" section at the bottom of each checklist to capture not-run items, missing dependencies, approvals needed, or user follow-ups required.

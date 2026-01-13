@@ -44,6 +44,13 @@ Chrome channel.
 After first login, owners must complete their profile (date of birth + gender)
 at `/onboarding/profile` before accessing the rest of the app.
 
+## Reports + Artifacts
+
+Owners capture reports and upload PDF/image artifacts at `/reports`. Artifacts
+are stored in the private `lab-artifacts` bucket and are viewed via signed URLs.
+Storage policies are documented in
+`docs/current specs/reports-artifacts/reports_artifacts_storage_policy.md`.
+
 ## Stack
 
 - Next.js App Router (TypeScript)
