@@ -83,6 +83,7 @@ We are migrating to a standard, high-legibility sans-serif stack.
 3.  **Context**: System asks *only* "Who is this for?" (Person Selector) and "Date?" (Date Picker).
     -   *Future:* AI auto-fills this.
 4.  **Save**: Clicking save creates the `LabReport` and confirms the `LabArtifact`.
+5.  **No separate create form**: Report creation happens when the upload context is saved.
 
 ### Empty States
 -   Do not leave blank white space.

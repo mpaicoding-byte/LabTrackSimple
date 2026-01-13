@@ -37,6 +37,7 @@ Only after docs are read and summarized, implement the minimal code required by 
 - Do not implement or wire code before consulting docs.
 - Prefer official sources and primary documentation over blogs.
 - Keep Context7 and Tavily calls focused to stay within tool limits.
+- When reviewing or editing docs, align terminology and paths (schema fields, storage paths, onboarding requirements) across README, specs, and checklists.
 
 ## Document Generation (Repo Convention)
 
