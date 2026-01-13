@@ -28,7 +28,7 @@ Refactor the root layout to support a sidebar-first navigation.
     - User Profile / Sign out at bottom.
 - [x] **Update Root Layout** (`app/layout.tsx`)
     - Created `components/layout/DashboardLayout.tsx` instead to wrap authenticated views.
-- [x] **Fix Sidebar Auth Integration** (2026-01-13)
+- [x] **Fix Sidebar Auth Integration**
     - Added working Sign out functionality using Supabase auth
     - Added Sign in button when logged out
     - Added active link highlighting
@@ -54,7 +54,7 @@ Replace the manual "Create Report" form.
     - Header: Title + "New Report" Button.
     - Body: `ReportsList` + `EmptyState`.
 
-## Phase 6: Navigation & Routing Fixes (2026-01-13)
+## Phase 6: Navigation & Routing Fixes
 - [x] **Fix broken routes**
     - Created `/login` page (redirects to `/auth`)
     - Created `/settings` page (placeholder "Coming Soon")
@@ -75,7 +75,7 @@ Replace the manual "Create Report" form.
 - [ ] **Delete Old Code**
     - Remove the old `ReportsManager.tsx` monolithic file.
     - Remove unused CSS classes from `app/globals.css` if any.
-- [ ] **Refine Docs**
+- [x] **Refine Docs**
     - Update `docs/implementation_plan.md` (mark UI phases as "Revising").
     - Update `docs/technical_specification.md` if data models changed (unlikely, this is pure UX).
 
@@ -83,4 +83,3 @@ Replace the manual "Create Report" form.
 - [ ] **Strict Types**: Ensure all generic `any` are removed from the new components.
 - [ ] **Error Boundaries**: Add `<ErrorBoundary>` around the main list views.
 - [ ] **Loading States**: Add proper Skeletons (using `components/ui/skeleton.tsx`) instead of just "Loading..." text.
-

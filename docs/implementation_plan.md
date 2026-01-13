@@ -72,6 +72,8 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 
 ## Phase 3 — Reports + Artifacts
 
+Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
+
 ### Checklist
 - [x] Report creation form (person, date, source, notes)
 - [x] `lab_artifacts` row-first upload flow implemented

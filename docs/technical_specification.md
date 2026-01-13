@@ -48,6 +48,7 @@ Rationale: keeps membership explicit and simple; no email invite flow in MVP.
 - `user_id uuid null`
 - `name text not null`
 - `date_of_birth date null`
+- `gender text null` -- `female | male`
 - `deleted_at timestamptz null`
 - `created_at timestamptz default now()`
 Rationale: `user_id` links a person to a login when available, while still allowing owner-managed profiles.
@@ -113,6 +114,7 @@ Rationale: `user_id` links a person to a login when available, while still allow
   - `lab_reports.status`: `draft | review_required | final | extraction_failed`
   - `lab_artifacts.status`: `pending | ready | failed`
   - `lab_results_staging.status`: `needs_review | approved | rejected`
+- `people.gender`: `female | male` (or null)
 - `household_members`: UNIQUE constraint on `(household_id, user_id)` to prevent duplicate memberships.
 - `household_members`: UNIQUE partial constraint on `(household_id) WHERE role = 'owner'` to ensure a single owner per household.
 - `people`: UNIQUE partial constraint on `(household_id, user_id) WHERE user_id IS NOT NULL` to prevent linking one user to multiple people in the same household.
@@ -125,7 +127,7 @@ Rationale: trend queries are the primary read path in MVP and should be fast and
 
 ### 3.1 Bucket
 - Private bucket: `lab-artifacts`
-- Object path: `lab-artifacts/{household_id}/{report_id}/{artifact_id}.{ext}`
+- Object path: `{household_id}/{report_id}/{artifact_id}.{ext}`
 
 ### 3.2 Upload Flow (Row-First)
 1. Insert `lab_artifacts` row with `status = pending`.

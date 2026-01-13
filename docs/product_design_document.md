@@ -35,8 +35,9 @@ Rationale: keep privacy tight while avoiding onboarding complexity.
 ### 3.1 People
 - Create, list, rename, and soft-delete people.
 - Each person belongs to exactly one household.
-- Capture date of birth for each person (optional).
-- Display date of birth on the person card when present and allow edits in the create/rename flows.
+- Capture date of birth and gender for each person (required).
+- Display date of birth and gender on the person card when present and allow edits in the create/rename flows.
+- After first login, owners must complete date of birth + gender before accessing the rest of the app.
 - Household owner can link a person profile to an existing user account; members can log in and see only their own data (reports/results), while the owner can see all household people and reports.
 Rationale: supports family participation without email invites or role UI in MVP.
 Note: members see data only after the owner links their account to a person profile.
