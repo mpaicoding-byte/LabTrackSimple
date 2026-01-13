@@ -55,6 +55,7 @@ export function FileDropzone({ onFileSelect, disabled }: FileDropzoneProps) {
         >
             <input
                 type="file"
+                aria-label="Report file"
                 className="absolute inset-0 cursor-pointer opacity-0"
                 onChange={handleChange}
                 accept="application/pdf,image/*"

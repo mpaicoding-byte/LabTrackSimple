@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 const root = process.cwd();
 const migrationsDir = join(root, "supabase", "migrations");
-const specsDir = join(root, "docs", "current specs", "reports-artifacts");
+const specsDir = join(root, "docs", "archived specs", "reports-artifacts");
 
 const files = {
   reportsPage: join(root, "app", "reports", "page.tsx"),

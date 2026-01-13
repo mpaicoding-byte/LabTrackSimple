@@ -94,12 +94,12 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 ## Phase 4 — Extraction + Staging
 
 ### Checklist
-- [ ] Edge Function `extract_report` implemented
-- [ ] `extraction_run_id` generated and used
-- [ ] Staging rows inserted into `lab_results_staging`
-- [ ] Report status updates on success/failure
-- [ ] Manual staging row insertion supported
-- [ ] Zero extracted rows still set report to `review_required`
+- [x] Edge Function `extract_report` implemented
+- [x] `extraction_run_id` generated and used
+- [x] Staging rows inserted into `lab_results_staging`
+- [x] Report status updates on success/failure
+- [x] Manual staging row insertion supported
+- [x] Zero extracted rows still set report to `review_required`
 
 ### Outputs
 - Edge Function source in `supabase/functions/extract_report/`

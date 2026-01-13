@@ -1,16 +1,23 @@
 "use client";
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { ReportsManager } from "../ReportsManager";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/reports",
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+}));
+
 type PersonRow = {
   id: string;
   name: string;
-  date_of_birth: string | null;
-  gender: "female" | "male" | null;
 };
 
 type ReportRow = {
@@ -18,7 +25,6 @@ type ReportRow = {
   person_id: string;
   report_date: string;
   source: string | null;
-  notes: string | null;
   status: string;
   created_at: string;
 };
@@ -42,16 +48,23 @@ const insertReportMock = vi.fn((payload: unknown) => {
   };
 });
 
-const insertArtifactMock = vi.fn((payload: unknown) => {
-  const row = Array.isArray(payload) ? payload[0] : payload;
-  return {
-    select: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: row, error: null }),
-  };
-});
+const insertArtifactMock = vi.fn(() => ({ error: null }));
 
 const updateArtifactMock = vi.fn(() => ({
   eq: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+const deleteArtifactMock = vi.fn(() => ({
+  eq: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+const updateReportMock = vi.fn(() => ({
+  eq: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+const insertStagingMock = vi.fn(() => ({
+  select: vi.fn().mockReturnThis(),
+  single: vi.fn().mockResolvedValue({ data: null, error: null }),
 }));
 
 const uploadMock = vi.fn().mockResolvedValue({
@@ -59,8 +72,12 @@ const uploadMock = vi.fn().mockResolvedValue({
   error: null,
 });
 
-const createSignedUrlMock = vi.fn().mockResolvedValue({
-  data: { signedUrl: "https://example.com/mock" },
+const invokeMock = vi.fn().mockResolvedValue({
+  data: {
+    extraction_run_id: "run-1",
+    inserted_rows: 1,
+    status: "review_required",
+  },
   error: null,
 });
 
@@ -82,7 +99,7 @@ const supabaseMock = {
       return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        is: vi.fn().mockReturnThis(),
+        is: vi.fn().mockResolvedValue({ data: peopleData, error: null }),
         order: vi.fn().mockResolvedValue({ data: peopleData, error: null }),
       };
     }
@@ -94,17 +111,21 @@ const supabaseMock = {
         is: vi.fn().mockReturnThis(),
         order: vi.fn().mockResolvedValue({ data: reportsData, error: null }),
         insert: insertReportMock,
+        update: updateReportMock,
       };
     }
 
     if (table === "lab_artifacts") {
       return {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        is: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [], error: null }),
         insert: insertArtifactMock,
         update: updateArtifactMock,
+        delete: deleteArtifactMock,
+      };
+    }
+
+    if (table === "lab_results_staging") {
+      return {
+        insert: insertStagingMock,
       };
     }
 
@@ -118,8 +139,10 @@ const supabaseMock = {
   storage: {
     from: vi.fn(() => ({
       upload: uploadMock,
-      createSignedUrl: createSignedUrlMock,
     })),
+  },
+  functions: {
+    invoke: invokeMock,
   },
 };
 
@@ -142,95 +165,53 @@ beforeEach(() => {
     {
       id: "person-1",
       name: "Ada Lovelace",
-      date_of_birth: "1990-01-01",
-      gender: "female",
     },
   ];
   reportsData = [];
   vi.clearAllMocks();
 });
 
-test("owners can create a report with person, date, source, and notes", async () => {
-  render(<ReportsManager />);
-
-  const personSelect = await screen.findByLabelText(/person/i);
-  const dateInput = screen.getByLabelText(/report date/i);
-  const sourceInput = screen.getByPlaceholderText(/lab source/i);
-  const notesInput = screen.getByLabelText(/notes/i);
-  const createButton = screen.getByRole("button", { name: /create report/i });
-
-  expect(createButton).toBeDisabled();
-
-  await within(personSelect).findByRole("option", { name: /ada lovelace/i });
-  await userEvent.selectOptions(personSelect, "person-1");
-  await userEvent.type(dateInput, "2024-01-10");
-  await userEvent.type(sourceInput, "Quest Diagnostics");
-  await userEvent.type(notesInput, "fasting");
-
-  await waitFor(() => {
-    expect(createButton).toBeEnabled();
-  });
-
-  await userEvent.click(createButton);
-
-  await waitFor(() => {
-    expect(insertReportMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        household_id: "household-1",
-        person_id: "person-1",
-        report_date: "2024-01-10",
-        source: "Quest Diagnostics",
-        notes: "fasting",
-      }),
-    );
-  });
-});
-
-test("artifact upload uses row-first insert and updates status", async () => {
-  reportsData = [
-    {
-      id: "report-1",
-      person_id: "person-1",
-      report_date: "2024-01-10",
-      source: "Quest",
-      notes: null,
-      status: "draft",
-      created_at: "2024-01-10T12:00:00Z",
-    },
-  ];
-
+test("owners can save a report from a file and upload its artifact", async () => {
   vi.stubGlobal("crypto", {
     randomUUID: () => "artifact-123",
   });
 
   render(<ReportsManager />);
 
-  const reportSelect = await screen.findByLabelText(/^report$/i);
-  await within(reportSelect).findByRole("option", { name: /ada lovelace/i });
-  await userEvent.selectOptions(reportSelect, "report-1");
-
-  const fileInput = screen.getByLabelText(/artifact file/i);
-  const uploadButton = screen.getByRole("button", {
-    name: /upload artifact/i,
-  });
-
+  const fileInput = await screen.findByLabelText(/report file/i);
   const file = new File(["dummy"], "report.pdf", {
     type: "application/pdf",
   });
 
   await userEvent.upload(fileInput, file);
-  await userEvent.click(uploadButton);
+  await userEvent.click(
+    await screen.findByRole("button", { name: /ada lovelace/i }),
+  );
+
+  const dateInput = screen.getByLabelText(/report date/i);
+  await userEvent.clear(dateInput);
+  await userEvent.type(dateInput, "2024-01-10");
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /save report/i }),
+  );
 
   await waitFor(() => {
-    expect(insertArtifactMock).toHaveBeenCalled();
+    expect(insertReportMock).toHaveBeenCalled();
   });
 
-  const insertPayload = insertArtifactMock.mock.calls[0]?.[0];
-  const artifactRow = Array.isArray(insertPayload)
-    ? insertPayload[0]
-    : insertPayload;
+  expect(insertReportMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      household_id: "household-1",
+      person_id: "person-1",
+      report_date: "2024-01-10",
+      source: "Uploaded via Web",
+      status: "draft",
+    }),
+  );
 
-  expect(artifactRow).toEqual(
+  const artifactPayload = insertArtifactMock.mock.calls[0]?.[0];
+  expect(artifactPayload).toEqual(
     expect.objectContaining({
       id: "artifact-123",
       lab_report_id: "report-1",
@@ -245,12 +226,93 @@ test("artifact upload uses row-first insert and updates status", async () => {
   expect(uploadMock).toHaveBeenCalledWith(
     "household-1/report-1/artifact-123.pdf",
     file,
-    expect.objectContaining({ contentType: "application/pdf", upsert: false }),
   );
 
-  expect(updateArtifactMock).toHaveBeenCalledWith(
-    expect.objectContaining({ status: "ready" }),
+  vi.unstubAllGlobals();
+});
+
+test("owners can trigger extraction for a report", async () => {
+  reportsData = [
+    {
+      id: "report-1",
+      person_id: "person-1",
+      report_date: "2024-01-10",
+      source: "Quest",
+      status: "draft",
+      created_at: "2024-01-10T12:00:00Z",
+    },
+  ];
+
+  render(<ReportsManager />);
+
+  const extractButton = await screen.findByRole("button", {
+    name: /extract/i,
+  });
+  await userEvent.click(extractButton);
+
+  await waitFor(() => {
+    expect(invokeMock).toHaveBeenCalledWith("extract_report", {
+      body: { lab_report_id: "report-1" },
+    });
+  });
+
+  await screen.findByText(/review required/i);
+});
+
+test("owners can add a manual staging row", async () => {
+  reportsData = [
+    {
+      id: "report-1",
+      person_id: "person-1",
+      report_date: "2024-01-10",
+      source: "Quest",
+      status: "draft",
+      created_at: "2024-01-10T12:00:00Z",
+    },
+  ];
+
+  vi.stubGlobal("crypto", {
+    randomUUID: () => "run-123",
+  });
+
+  render(<ReportsManager />);
+
+  await userEvent.type(
+    await screen.findByLabelText(/result name/i),
+    "Glucose",
   );
+  await userEvent.type(
+    screen.getByLabelText(/result value/i),
+    "92",
+  );
+  await userEvent.type(
+    screen.getByLabelText(/result unit/i),
+    "mg\/dL",
+  );
+  await userEvent.type(
+    screen.getByLabelText(/result details/i),
+    "fasting",
+  );
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /add result/i }),
+  );
+
+  await waitFor(() => {
+    expect(insertStagingMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lab_report_id: "report-1",
+        extraction_run_id: "run-123",
+        name_raw: "Glucose",
+        value_raw: "92",
+        unit_raw: "mg/dL",
+        value_num: 92,
+        details_raw: "fasting",
+      }),
+    );
+  });
+
+  await screen.findByText(/review required/i);
 
   vi.unstubAllGlobals();
 });

@@ -49,7 +49,7 @@ at `/onboarding/profile` before accessing the rest of the app.
 Owners capture reports and upload PDF/image artifacts at `/reports`. Artifacts
 are stored in the private `lab-artifacts` bucket and are viewed via signed URLs.
 Storage policies are documented in
-`docs/current specs/reports-artifacts/reports_artifacts_storage_policy.md`.
+`docs/archived specs/reports-artifacts/reports_artifacts_storage_policy.md`.
 
 ## Stack
 

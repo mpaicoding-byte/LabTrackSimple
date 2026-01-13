@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, FileText, Calendar, User } from "lucide-react";
+import { Loader2, FileText, Calendar, User } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 import { useSession } from "@/features/auth/SessionProvider";
@@ -26,9 +26,32 @@ type ReportRow = {
   created_at: string;
 };
 
+type ManualDraft = {
+  name: string;
+  value: string;
+  unit: string;
+  details: string;
+};
+
+type ReportNotice = {
+  tone: "success" | "error";
+  message: string;
+};
+
 // Helper for random IDs
 const buildArtifactId = () => crypto.randomUUID();
+const buildExtractionRunId = () => crypto.randomUUID();
 const BUCKET_ID = "lab-artifacts";
+
+const parseValueNum = (valueRaw: string) => {
+  const trimmed = valueRaw.trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.replace(/,/g, "");
+  const parsed = Number.parseFloat(normalized);
+
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 export const ReportsManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -44,6 +67,10 @@ export const ReportsManager = () => {
   // UI State
   const [draftFile, setDraftFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [extractingReports, setExtractingReports] = useState<Record<string, boolean>>({});
+  const [manualDrafts, setManualDrafts] = useState<Record<string, ManualDraft>>({});
+  const [manualSaving, setManualSaving] = useState<Record<string, boolean>>({});
+  const [reportNotices, setReportNotices] = useState<Record<string, ReportNotice>>({});
 
   // Draft Form State
   const [draftPersonId, setDraftPersonId] = useState("");
@@ -53,6 +80,40 @@ export const ReportsManager = () => {
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person.name])),
     [people],
+  );
+
+  const updateReportStatus = useCallback(
+    (reportId: string, status: ReportRow["status"]) => {
+      setReports((prev) =>
+        prev.map((report) =>
+          report.id === reportId ? { ...report, status } : report,
+        ),
+      );
+    },
+    [],
+  );
+
+  const setReportNotice = useCallback((reportId: string, notice: ReportNotice) => {
+    setReportNotices((prev) => ({ ...prev, [reportId]: notice }));
+  }, []);
+
+  const updateManualDraft = useCallback(
+    (reportId: string, draft: Partial<ManualDraft>) => {
+      setManualDrafts((prev) => {
+        const current = prev[reportId] ?? {
+          name: "",
+          value: "",
+          unit: "",
+          details: "",
+        };
+
+        return {
+          ...prev,
+          [reportId]: { ...current, ...draft },
+        };
+      });
+    },
+    [],
   );
 
   // --- Data Loading ---
@@ -225,6 +286,114 @@ export const ReportsManager = () => {
     }
   };
 
+  const handleExtractReport = useCallback(
+    async (reportId: string) => {
+      setExtractingReports((prev) => ({ ...prev, [reportId]: true }));
+      try {
+        const { data, error } = await supabase.functions.invoke("extract_report", {
+          body: { lab_report_id: reportId },
+        });
+
+        if (error) {
+          updateReportStatus(reportId, "extraction_failed");
+          setReportNotice(reportId, {
+            tone: "error",
+            message: error.message ?? "Extraction failed.",
+          });
+          return;
+        }
+
+        const status =
+          data?.status === "extraction_failed" ? "extraction_failed" : "review_required";
+
+        updateReportStatus(reportId, status);
+        setReportNotice(reportId, {
+          tone: "success",
+          message: `Extraction complete (${data?.inserted_rows ?? 0} rows).`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Extraction failed.";
+        updateReportStatus(reportId, "extraction_failed");
+        setReportNotice(reportId, {
+          tone: "error",
+          message,
+        });
+      } finally {
+        setExtractingReports((prev) => ({ ...prev, [reportId]: false }));
+      }
+    },
+    [supabase, setReportNotice, updateReportStatus],
+  );
+
+  const handleManualInsert = useCallback(
+    async (reportId: string) => {
+      const draft = manualDrafts[reportId] ?? {
+        name: "",
+        value: "",
+        unit: "",
+        details: "",
+      };
+
+      if (!draft.name.trim() || !draft.value.trim()) return;
+
+      setManualSaving((prev) => ({ ...prev, [reportId]: true }));
+      try {
+        const extractionRunId = buildExtractionRunId();
+        const valueNum = parseValueNum(draft.value);
+
+        const { error } = await supabase.from("lab_results_staging").insert({
+          lab_report_id: reportId,
+          extraction_run_id: extractionRunId,
+          name_raw: draft.name.trim(),
+          value_raw: draft.value.trim(),
+          unit_raw: draft.unit.trim() || null,
+          value_num: valueNum,
+          details_raw: draft.details.trim() || null,
+        });
+
+        if (error) {
+          setReportNotice(reportId, {
+            tone: "error",
+            message: error.message ?? "Manual entry failed.",
+          });
+          return;
+        }
+
+        const { error: statusError } = await supabase
+          .from("lab_reports")
+          .update({ status: "review_required" })
+          .eq("id", reportId);
+
+        if (statusError) {
+          setReportNotice(reportId, {
+            tone: "error",
+            message: statusError.message ?? "Failed to update report status.",
+          });
+          return;
+        }
+
+        updateReportStatus(reportId, "review_required");
+        setManualDrafts((prev) => ({
+          ...prev,
+          [reportId]: { name: "", value: "", unit: "", details: "" },
+        }));
+        setReportNotice(reportId, {
+          tone: "success",
+          message: "Manual result added.",
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Manual entry failed.";
+        setReportNotice(reportId, {
+          tone: "error",
+          message,
+        });
+      } finally {
+        setManualSaving((prev) => ({ ...prev, [reportId]: false }));
+      }
+    },
+    [manualDrafts, supabase, setReportNotice, updateReportStatus],
+  );
+
   // --- Render Views ---
 
   if (loading) {
@@ -284,8 +453,10 @@ export const ReportsManager = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Date</label>
+                  <label htmlFor="report-date" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Report date</label>
                   <Input
+                    id="report-date"
+                    aria-label="Report date"
                     type="date"
                     value={draftDate}
                     onChange={(e) => setDraftDate(e.target.value)}
@@ -345,37 +516,145 @@ export const ReportsManager = () => {
               <p className="text-sm text-zinc-600 mt-1">Upload your first report above to get started.</p>
             </div>
           ) : (
-            reports.map(report => (
-              <Card key={report.id} className="group overflow-hidden bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:border-indigo-200 dark:hover:border-white/20 hover:scale-[1.01] transition-all duration-300 backdrop-blur-md shadow-sm dark:shadow-none">
-                <div className="flex items-center gap-5 p-5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/10 dark:from-indigo-500/20 to-purple-500/10 dark:to-purple-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-white/5 shadow-inner">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-zinc-900 dark:text-white text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                      {peopleById.get(report.person_id) ?? "Unknown"}
-                    </h3>
-                    <div className="flex items-center gap-3 text-sm text-zinc-500 mt-1">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {new Date(report.report_date).toLocaleDateString()}
+            reports.map((report) => {
+              const manualDraft = manualDrafts[report.id] ?? {
+                name: "",
+                value: "",
+                unit: "",
+                details: "",
+              };
+              const notice = reportNotices[report.id];
+              const isExtracting = Boolean(extractingReports[report.id]);
+              const isManualSaving = Boolean(manualSaving[report.id]);
+              const isManualValid =
+                manualDraft.name.trim().length > 0 &&
+                manualDraft.value.trim().length > 0;
+
+              return (
+                <Card key={report.id} className="group overflow-hidden bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:border-indigo-200 dark:hover:border-white/20 hover:scale-[1.01] transition-all duration-300 backdrop-blur-md shadow-sm dark:shadow-none">
+                  <div className="flex flex-wrap items-center gap-5 p-5">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/10 dark:from-indigo-500/20 to-purple-500/10 dark:to-purple-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-white/5 shadow-inner">
+                      <FileText className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-zinc-900 dark:text-white text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                        {peopleById.get(report.person_id) ?? "Unknown"}
+                      </h3>
+                      <div className="flex items-center gap-3 text-sm text-zinc-500 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {new Date(report.report_date).toLocaleDateString()}
+                        </div>
+                        {report.source && <span className="w-1 h-1 bg-zinc-700 rounded-full" />}
+                        {report.source && <span>{report.source}</span>}
                       </div>
-                      {report.source && <span className="w-1 h-1 bg-zinc-700 rounded-full" />}
-                      {report.source && <span>{report.source}</span>}
+                      {notice && (
+                        <p
+                          className={`mt-2 text-xs ${notice.tone === "error"
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-emerald-600 dark:text-emerald-400"
+                            }`}
+                        >
+                          {notice.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {role === "owner" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleExtractReport(report.id)}
+                          disabled={isExtracting}
+                          className="border-indigo-200 dark:border-white/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-white/10"
+                        >
+                          {isExtracting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Extract
+                        </Button>
+                      )}
+                      <Badge className={`
+                        h-8 px-3 rounded-lg text-sm font-medium border-0
+                        ${report.status === 'final' ? 'bg-emerald-500/10 text-emerald-400' :
+                          report.status === 'review_required' ? 'bg-amber-500/10 text-amber-400' :
+                            report.status === 'extraction_failed' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-500/10 text-zinc-400'
+                        }
+                      `}>
+                        {report.status.replace('_', ' ')}
+                      </Badge>
                     </div>
                   </div>
-                  <Badge className={`
-                    h-8 px-3 rounded-lg text-sm font-medium border-0
-                    ${report.status === 'final' ? 'bg-emerald-500/10 text-emerald-400' :
-                      report.status === 'review_required' ? 'bg-amber-500/10 text-amber-400' :
-                        report.status === 'extraction_failed' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-500/10 text-zinc-400'
-                    }
-                  `}>
-                    {report.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-              </Card>
-            ))
+
+                  {role === "owner" && (
+                    <div className="border-t border-zinc-200/70 dark:border-white/10 px-5 py-4">
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <div className="space-y-2">
+                          <label htmlFor={`manual-name-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Result name
+                          </label>
+                          <Input
+                            id={`manual-name-${report.id}`}
+                            aria-label="Result name"
+                            value={manualDraft.name}
+                            onChange={(e) => updateManualDraft(report.id, { name: e.target.value })}
+                            placeholder="e.g., Glucose"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor={`manual-value-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Result value
+                          </label>
+                          <Input
+                            id={`manual-value-${report.id}`}
+                            aria-label="Result value"
+                            value={manualDraft.value}
+                            onChange={(e) => updateManualDraft(report.id, { value: e.target.value })}
+                            placeholder="e.g., 92"
+                            inputMode="decimal"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor={`manual-unit-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Result unit
+                          </label>
+                          <Input
+                            id={`manual-unit-${report.id}`}
+                            aria-label="Result unit"
+                            value={manualDraft.unit}
+                            onChange={(e) => updateManualDraft(report.id, { unit: e.target.value })}
+                            placeholder="e.g., mg/dL"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor={`manual-details-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Result details
+                          </label>
+                          <Input
+                            id={`manual-details-${report.id}`}
+                            aria-label="Result details"
+                            value={manualDraft.details}
+                            onChange={(e) => updateManualDraft(report.id, { details: e.target.value })}
+                            placeholder="Optional notes"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleManualInsert(report.id)}
+                          disabled={!isManualValid || isManualSaving}
+                          className="bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
+                        >
+                          {isManualSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Add result
+                        </Button>
+                        Manual entries create staging rows for review.
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
 
@@ -383,4 +662,3 @@ export const ReportsManager = () => {
     </DashboardLayout>
   );
 };
-
