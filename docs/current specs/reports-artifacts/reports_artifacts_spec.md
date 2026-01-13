@@ -14,9 +14,10 @@ Owners need a reliable way to capture a lab report, attach artifacts, and view f
 - Review grid editing or approval flows.
 
 ## Flow
-1. Load household membership and people list.
-2. Owner creates a report (person, date, optional source/notes).
-3. Owner selects a report and uploads an artifact:
+1. Owner drops a file to start the flow.
+2. Show minimal context form (person, date, optional source/notes).
+3. On save:
+   - Create the report.
    - Generate artifact UUID client-side.
    - Insert `lab_artifacts` row with `pending` status and `object_path`.
    - Upload file to storage path.
