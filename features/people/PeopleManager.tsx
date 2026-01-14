@@ -51,6 +51,11 @@ export const PeopleManager = () => {
   const [editDob, setEditDob] = useState("");
   const [editGender, setEditGender] = useState("");
 
+  const canCreate =
+    newName.trim().length > 0 &&
+    newDob.trim().length > 0 &&
+    (newGender === "female" || newGender === "male");
+
 
   const loadData = useCallback(async () => {
     if (!session?.user.id) {
@@ -90,8 +95,8 @@ export const PeopleManager = () => {
     if (!sessionLoading) loadData();
   }, [sessionLoading, loadData]);
 
-  const handleCreate = async () => {
-    if (!householdId || !newName) return;
+  const createPerson = async () => {
+    if (!householdId || !canCreate) return;
 
     setLoading(true);
     const { error } = await supabase.from("people").insert({
@@ -111,7 +116,7 @@ export const PeopleManager = () => {
     setLoading(false);
   };
 
-  const handleUpdate = async () => {
+  const renamePerson = async () => {
     if (!editingId || !editName) return;
 
     const { error } = await supabase
@@ -129,7 +134,7 @@ export const PeopleManager = () => {
     }
   };
 
-  const handleSoftDelete = async (id: string) => {
+  const softDeletePerson = async (id: string) => {
     if (!confirm("Are you sure you want to remove this person?")) return;
 
     const { error } = await supabase
@@ -188,8 +193,9 @@ export const PeopleManager = () => {
               <div className="space-y-4">
                 <div className="md:grid md:grid-cols-2 gap-6 space-y-4 md:space-y-0">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Full Name</label>
+                    <label htmlFor="person-name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Full Name</label>
                     <Input
+                      id="person-name"
                       placeholder="e.g. Grandma Mae"
                       value={newName}
                       onChange={e => setNewName(e.target.value)}
@@ -197,8 +203,9 @@ export const PeopleManager = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Date of Birth</label>
+                    <label htmlFor="person-dob" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Date of Birth</label>
                     <Input
+                      id="person-dob"
                       type="date"
                       value={newDob}
                       onChange={e => setNewDob(e.target.value)}
@@ -207,9 +214,10 @@ export const PeopleManager = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Gender</label>
+                  <label htmlFor="person-gender" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Gender</label>
                   <div className="relative">
                     <select
+                      id="person-gender"
                       className="w-full appearance-none bg-white dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-sm"
                       value={newGender}
                       onChange={e => setNewGender(e.target.value)}
@@ -224,7 +232,7 @@ export const PeopleManager = () => {
               </div>
               <div className="flex gap-3 justify-end pt-4">
                 <Button variant="ghost" onClick={() => setIsCreating(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-xl">Cancel</Button>
-                <Button onClick={handleCreate} disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 rounded-xl px-6">
+                <Button onClick={createPerson} disabled={loading || !canCreate} className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 rounded-xl px-6">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Person"}
                 </Button>
               </div>
@@ -270,7 +278,7 @@ export const PeopleManager = () => {
                       <Button size="icon" variant="ghost" onClick={() => startEdit(person)} className="h-8 w-8 text-zinc-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/10 rounded-lg">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => handleSoftDelete(person.id)} className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg">
+                      <Button size="icon" variant="ghost" onClick={() => softDeletePerson(person.id)} className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -282,7 +290,7 @@ export const PeopleManager = () => {
                     <Input value={editName} onChange={e => setEditName(e.target.value)} className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white h-9 rounded-lg" />
                     <Input type="date" value={editDob} onChange={e => setEditDob(e.target.value)} className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white h-9 rounded-lg" />
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" onClick={handleUpdate} className="bg-indigo-600 hover:bg-indigo-500 rounded-lg"><Check className="h-4 w-4" /></Button>
+                      <Button size="sm" onClick={renamePerson} className="bg-indigo-600 hover:bg-indigo-500 rounded-lg"><Check className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg"><X className="h-4 w-4" /></Button>
                     </div>
                   </div>

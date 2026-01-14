@@ -1,27 +1,30 @@
 ---
-name: playwright-testing
-description: Troubleshoot Playwright test runs in this repo (dev server EPERM, Chrome permissions, browser install, and using existing dev server with E2E_BASE_URL). Use when running Playwright E2E tests.
+name: testing
+description: Testing guidance for this repo (unit, component, integration, and E2E). Includes troubleshooting.
 ---
 
-# Playwright Testing (Repo-Specific)
+# Testing (Repo-Specific)
 
-Use this skill when Playwright E2E runs fail or when starting E2E in this repo.
+Use this skill when running or troubleshooting tests in this repo. Tests must be run by the agent (automatic); do not ask the user to run them.
 
-## Known Issues + Fixes
+## Playwright (E2E)
+- **Dev server EPERM**
+  - Start `npm run dev` in the host terminal and run tests with:
+    - `E2E_BASE_URL=http://127.0.0.1:3000`
+- **System Chrome permission errors**
+  - Use bundled Chromium (default) by leaving `PW_USE_CHROME` unset.
+  - Only set `PW_USE_CHROME=true` if you explicitly want system Chrome.
+- **Missing bundled browsers**
+  - Run once: `npx playwright install`
+- **E2E entry command pattern**
+  - `E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e -- <spec>`
 
-1) **Dev server EPERM**
-- If Playwright webServer fails with `listen EPERM` on 127.0.0.1:3000, do NOT let Playwright start the server.
-- Start `npm run dev` in the host terminal and run tests with:
-  - `E2E_BASE_URL=http://127.0.0.1:3000`
+## UI Verification (Mandatory)
+- Any UI change requires verification using the Chrome DevTools MCP.
 
-2) **System Chrome permission errors**
-- If Playwright cannot launch system Chrome (Crashpad/Library permissions), use bundled Chromium:
-  - `PW_USE_CHROME=false`
+## Unit / Component
+- Unit: `npm run test` (node --test).
+- Component: `npm run test:unit` (vitest + jsdom).
 
-3) **Missing bundled browsers**
-- If bundled Chromium is missing, run once:
-  - `npx playwright install`
-
-4) **E2E entry command pattern**
-- When running against the already-running dev server, use:
-  - `PW_USE_CHROME=false E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e -- <spec>`
+## Integration
+- Start local Supabase: `npx supabase start`.

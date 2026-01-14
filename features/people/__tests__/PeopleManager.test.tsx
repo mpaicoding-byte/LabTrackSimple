@@ -6,6 +6,15 @@ import { vi } from "vitest";
 
 import { PeopleManager } from "../PeopleManager";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/people",
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+}));
+
 const insertMock = vi.fn().mockResolvedValue({ error: null });
 
 const supabaseMock = {
@@ -61,10 +70,15 @@ vi.mock("@/features/auth/SessionProvider", () => ({
 test("owners can include a date of birth and gender when creating a person", async () => {
   render(<PeopleManager />);
 
-  const nameInput = await screen.findByPlaceholderText(/full name/i);
+  const startButton = await screen.findByRole("button", {
+    name: /add family member/i,
+  });
+  await userEvent.click(startButton);
+
+  const nameInput = await screen.findByLabelText(/full name/i);
   const dobInput = screen.getByLabelText(/date of birth/i);
   const genderSelect = screen.getByLabelText(/gender/i);
-  const addButton = screen.getByRole("button", { name: /add person/i });
+  const addButton = screen.getByRole("button", { name: /save person/i });
 
   expect(addButton).toBeDisabled();
 

@@ -1,14 +1,6 @@
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
-
-// Since I cannot install radix-ui/react-token which I might need for Slot in a true shadcn setup, 
-// I will implement a standard button without Slot first, 
-// OR I will assume the user wanted "shadcn-like" but I should just write clean React code.
-// The user authorized `lucide-react`, `clsx`, `tailwind-merge`.
-// I will just use standard buttons for now.
 
 const buttonVariants = (variant: string = "default", size: string = "default") => {
     // Implementing CVA manually since I didn't ask to install 'class-variance-authority'
@@ -31,16 +23,36 @@ const buttonVariants = (variant: string = "default", size: string = "default") =
     );
 }
 
+type SlotProps = React.HTMLAttributes<HTMLElement> & {
+    children?: React.ReactNode
+}
+
+const Slot = React.forwardRef<HTMLElement, SlotProps>(({ children, className, ...props }, ref) => {
+    if (!React.isValidElement(children)) {
+        return null
+    }
+
+    return React.cloneElement(children, {
+        ...props,
+        className: cn(children.props.className, className),
+        ref,
+    })
+})
+Slot.displayName = "Slot"
+
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
     size?: "default" | "sm" | "lg" | "icon"
+    asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = "default", size = "default", ...props }, ref) => {
+    ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
+        const Component = asChild ? Slot : "button"
+
         return (
-            <button
+            <Component
                 className={cn(buttonVariants(variant, size), className)}
                 ref={ref}
                 {...props}

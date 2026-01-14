@@ -108,6 +108,24 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 ### Done When
 - Triggering extraction creates staging rows and updates report status
 
+## Phase 4b — Automated Extraction (LLM/ML)
+
+### Checklist
+- [ ] Choose and document extraction approach (LLM provider, OCR pipeline, or hybrid)
+- [ ] Implement extraction adapter used by `extract_report` (provider call + retries)
+- [ ] Map structured output to staging fields (`name_raw`, `value_raw`, `unit_raw`, `value_num`, `details_raw`)
+- [ ] Add prompt/schema validation for deterministic parsing
+- [ ] Add fixture artifacts and evaluation tests for extraction quality
+- [ ] Wire secrets/env config for provider and document setup
+
+### Outputs
+- Extraction adapter module wired into `supabase/functions/extract_report/`
+- Docs for provider choice, prompt/schema, and local config
+- Test fixtures and eval coverage for extraction outputs
+
+### Done When
+- A real artifact produces non-empty, well-formed staging rows via the adapter
+
 ## Phase 5 — Review + Commit
 
 ### Checklist
@@ -160,6 +178,7 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 ## Phase 8 — QA + Hardening
 
 ### Checklist
+- [x] Playwright E2E specs aligned with current UI flows and passing locally
 - [ ] Error handling for upload/extraction/commit
 - [ ] Basic performance checks for trend queries
 - [ ] End-to-end MVP acceptance criteria verified

@@ -66,7 +66,7 @@ test.describe("profile completion gate", () => {
 
     await page.waitForURL("**/people");
     await expect(
-      page.getByRole("heading", { name: /create a new person/i }),
+      page.getByRole("heading", { name: /my family/i }),
     ).toBeVisible();
   });
 });

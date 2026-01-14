@@ -178,10 +178,11 @@ export const ProfileCompletionScreen = () => {
         <section className="glass p-8 rounded-3xl shadow-2xl">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
+              <label htmlFor="profile-dob" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
                 Date of birth
               </label>
               <input
+                id="profile-dob"
                 type="date"
                 value={dateOfBirth}
                 onChange={(event) => setDateOfBirth(event.target.value)}
@@ -196,11 +197,12 @@ export const ProfileCompletionScreen = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
+              <label htmlFor="profile-gender" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
                 Gender
               </label>
               <div className="relative">
                 <select
+                  id="profile-gender"
                   value={gender}
                   onChange={(event) => setGender(event.target.value)}
                   className="w-full appearance-none bg-white dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"

@@ -14,29 +14,30 @@ test.describe("reports and artifacts", () => {
     await page.goto("/people");
 
     const newName = `E2E Report Person ${Date.now()}`;
-    await page.getByPlaceholder("Full name").fill(newName);
-    await page.getByLabel("Date of birth").fill("1990-01-01");
+    await page.getByRole("button", { name: /add family member/i }).click();
+    await page.getByLabel("Full Name").fill(newName);
+    await page.getByLabel(/date of birth/i).fill("1990-01-01");
     await page.getByLabel("Gender").selectOption("female");
-    await page.getByRole("button", { name: /add person/i }).click();
-    await expect(page.getByText(/person created/i)).toBeVisible();
+    await page.getByRole("button", { name: /save person/i }).click();
+    await expect(page.getByText(newName, { exact: true })).toBeVisible();
 
     await page.goto("/reports");
 
-    await page.getByLabel("Person").selectOption({ index: 1 });
-    await page.getByLabel("Report date").fill("2024-02-15");
-    await page.getByLabel("Source").fill("Quest Diagnostics");
-    await page.getByLabel("Notes").fill("E2E upload test");
-    await page.getByRole("button", { name: /create report/i }).click();
-
-    await expect(page.getByText(/report created/i)).toBeVisible();
-
-    await page.locator("#report-select").selectOption({ index: 1 });
-
     const filePath = path.resolve("tests/assets/Report Mahesh 2025.pdf");
-    await page.getByLabel("Artifact file").setInputFiles(filePath);
-    await page.getByRole("button", { name: /upload artifact/i }).click();
+    await page.getByLabel(/report file/i).setInputFiles(filePath);
+    await expect(
+      page.getByRole("heading", { name: /new report from file/i }),
+    ).toBeVisible();
 
-    await expect(page.getByText(/ready/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /view/i })).toBeVisible();
+    await page.getByRole("button", { name: new RegExp(newName, "i") }).click();
+    await page.getByLabel(/report date/i).fill("2024-02-15");
+    await page.getByRole("button", { name: /save report/i }).click();
+
+    await expect(page.getByRole("heading", { name: /lab reports/i })).toBeVisible();
+    const reportCard = page
+      .getByRole("heading", { name: new RegExp(newName, "i") })
+      .locator("xpath=ancestor::div[contains(@class,'group')][1]");
+    await expect(reportCard).toBeVisible();
+    await expect(reportCard.getByText(/draft/i)).toBeVisible();
   });
 });

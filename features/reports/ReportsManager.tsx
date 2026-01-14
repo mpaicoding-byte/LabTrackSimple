@@ -181,25 +181,6 @@ export const ReportsManager = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Login Gate
-  if (!sessionLoading && !session) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-          <div className="bg-indigo-50 p-4 rounded-full">
-            <User className="w-8 h-8 text-indigo-600" />
-          </div>
-          <h2 className="text-xl font-semibold">Please Sign In</h2>
-          <p className="text-slate-500 max-w-sm text-center">You need to be signed in to view reports and artifacts.</p>
-          <Button asChild>
-            <a href="/auth">Go to Sign In</a>
-          </Button>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-
   // --- Actions ---
 
   const handleFileSelect = (file: File) => {
@@ -395,6 +376,24 @@ export const ReportsManager = () => {
   );
 
   // --- Render Views ---
+
+  // Login Gate
+  if (!sessionLoading && !session) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+          <div className="bg-indigo-50 p-4 rounded-full">
+            <User className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h2 className="text-xl font-semibold">Please Sign In</h2>
+          <p className="text-slate-500 max-w-sm text-center">You need to be signed in to view reports and artifacts.</p>
+          <Button asChild>
+            <a href="/auth">Go to Sign In</a>
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (loading) {
     return (

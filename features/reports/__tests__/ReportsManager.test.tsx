@@ -151,16 +151,18 @@ vi.mock("@/features/core/supabaseClient", () => ({
 }));
 
 const sessionMock = { user: { id: "user-1", email: "owner@example.com" } };
+let sessionState: typeof sessionMock | null = sessionMock;
 
 vi.mock("@/features/auth/SessionProvider", () => ({
   useSession: () => ({
-    session: sessionMock,
+    session: sessionState,
     loading: false,
     error: null,
   }),
 }));
 
 beforeEach(() => {
+  sessionState = sessionMock;
   peopleData = [
     {
       id: "person-1",
@@ -169,6 +171,23 @@ beforeEach(() => {
   ];
   reportsData = [];
   vi.clearAllMocks();
+});
+
+test("does not crash when the session becomes null", async () => {
+  const { rerender } = render(<ReportsManager />);
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole("heading", { name: /lab reports/i }),
+    ).toBeInTheDocument();
+  });
+
+  sessionState = null;
+  rerender(<ReportsManager />);
+
+  await waitFor(() => {
+    expect(screen.getByText(/please sign in/i)).toBeInTheDocument();
+  });
 });
 
 test("owners can save a report from a file and upload its artifact", async () => {

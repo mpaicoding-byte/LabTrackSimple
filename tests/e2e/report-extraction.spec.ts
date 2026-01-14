@@ -13,12 +13,14 @@ test.describe("report extraction", () => {
 
     await page.goto("/people");
 
+    await page.getByRole("button", { name: /add family member/i }).click();
+
     const newName = `E2E Extraction Person ${Date.now()}`;
-    await page.getByPlaceholder("Full name").fill(newName);
-    await page.getByLabel("Date of birth").fill("1990-01-01");
-    await page.getByLabel("Gender").selectOption("female");
-    await page.getByRole("button", { name: /add person/i }).click();
-    await expect(page.getByText(/person created/i)).toBeVisible();
+    await page.getByPlaceholder("e.g. Grandma Mae").fill(newName);
+    await page.locator("input[type=\"date\"]").fill("1990-01-01");
+    await page.getByRole("combobox").selectOption("female");
+    await page.getByRole("button", { name: /save person/i }).click();
+    await expect(page.getByRole("heading", { name: new RegExp(newName, "i") })).toBeVisible();
 
     await page.goto("/reports");
 
@@ -31,9 +33,11 @@ test.describe("report extraction", () => {
 
     await expect(page.getByText(/lab reports/i)).toBeVisible();
 
-    const extractButton = page.getByRole("button", { name: /extract/i }).first();
-    await extractButton.click();
+    const reportCard = page
+      .getByRole("heading", { name: new RegExp(newName, "i") })
+      .locator("xpath=ancestor::div[contains(@class,'group')][1]");
+    await reportCard.getByRole("button", { name: /extract/i }).click();
 
-    await expect(page.getByText(/review required/i)).toBeVisible();
+    await expect(reportCard.getByText(/review required/i)).toBeVisible();
   });
 });

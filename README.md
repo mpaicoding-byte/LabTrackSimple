@@ -36,8 +36,8 @@ UI changes also require MCP UI verification.
 E2E tests load `.env.e2e` (fallback to `.env`) for `E2E_EMAIL` and
 `E2E_PASSWORD`. Set `E2E_BASE_URL` if you are targeting a non-default server
 URL.
-Set `PW_USE_CHROME=false` to use the bundled Chromium instead of the system
-Chrome channel.
+Set `PW_USE_CHROME=true` to use the system Chrome channel instead of the
+bundled Chromium.
 
 ## Onboarding
 

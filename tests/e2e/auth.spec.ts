@@ -40,9 +40,7 @@ test.describe("auth flow", () => {
 
     await page.getByLabel("Email").fill(buildSignupEmail());
     await page.getByLabel("Password").fill(process.env.E2E_PASSWORD ?? "");
-    await page
-      .getByLabel("Household label (optional)")
-      .fill("E2E Signup Household");
+    await page.getByLabel(/household name/i).fill("E2E Signup Household");
     await page
       .locator("form")
       .getByRole("button", { name: "Create account" })
@@ -64,8 +62,8 @@ test.describe("auth flow", () => {
     await signIn(page);
 
     await page.getByRole("button", { name: "Sign out" }).click();
-    await expect(page.getByText("Signed out.")).toBeVisible();
-    await expect(page.getByText("Signed in as")).toBeHidden();
+    await page.waitForURL("**/auth");
+    await expect(page.getByRole("button", { name: "Sign in" }).first()).toBeVisible();
   });
 
   test("invalid password shows error", async ({ page }) => {

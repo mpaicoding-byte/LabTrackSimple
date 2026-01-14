@@ -20,17 +20,11 @@ export default async function globalSetup(config: FullConfig) {
     typeof project.use?.storageState === "string"
       ? project.use.storageState
       : path.resolve(".playwright", ".auth", "owner.json");
-
   fs.mkdirSync(path.dirname(storageStatePath), { recursive: true });
 
-  const useChromeChannel = process.env.PW_USE_CHROME !== "false";
-  const launchOptions = {
-    args: ["--disable-crashpad", "--disable-features=Crashpad"],
-  } as const;
-
+  const useChromeChannel = process.env.PW_USE_CHROME === "true";
   const browser = await chromium.launch({
     ...(useChromeChannel ? { channel: "chrome" } : {}),
-    ...launchOptions,
   });
   const page = await browser.newPage();
 

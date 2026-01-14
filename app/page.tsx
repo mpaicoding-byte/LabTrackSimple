@@ -127,7 +127,7 @@ export default function DashboardPage() {
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30 mb-8 mx-auto">
               <Activity className="h-10 w-10 text-white" />
             </div>
-            <h1 className="text-4xl font-display font-bold mb-4 bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-white/60 bg-clip-text text-transparent">Welcome to LabTrack</h1>
+            <h1 className="text-4xl font-display font-bold mb-4 bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-white/60 bg-clip-text text-transparent">Welcome to LabTrackSimple</h1>
             <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md text-lg leading-relaxed">
               Your personal health command center. Sign in to visualize your lab history and manage household health data.
             </p>

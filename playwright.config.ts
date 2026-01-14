@@ -8,7 +8,7 @@ dotenv.config({ path: envPath });
 
 const authFile = path.resolve(".playwright", ".auth", "owner.json");
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3000";
-const useChromeChannel = process.env.PW_USE_CHROME !== "false";
+const useChromeChannel = process.env.PW_USE_CHROME === "true";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -24,9 +24,6 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
     storageState: authFile,
-    launchOptions: {
-      args: ["--disable-crashpad", "--disable-features=Crashpad"],
-    },
     ...(useChromeChannel ? { channel: "chrome" } : {}),
   },
   webServer: process.env.E2E_BASE_URL
