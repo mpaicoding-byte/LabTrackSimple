@@ -48,7 +48,7 @@ const insertReportMock = vi.fn((payload: unknown) => {
   };
 });
 
-const insertArtifactMock = vi.fn(() => ({ error: null }));
+const insertArtifactMock = vi.fn((_payload: unknown) => ({ error: null }));
 
 const updateArtifactMock = vi.fn(() => ({
   eq: vi.fn().mockResolvedValue({ error: null }),

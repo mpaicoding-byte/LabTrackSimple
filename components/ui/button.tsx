@@ -32,9 +32,9 @@ const Slot = React.forwardRef<HTMLElement, SlotProps>(({ children, className, ..
         return null
     }
 
-    return React.cloneElement(children, {
+    return React.cloneElement(children as React.ReactElement<any>, {
         ...props,
-        className: cn(children.props.className, className),
+        className: cn((children.props as any).className, className),
         ref,
     })
 })
