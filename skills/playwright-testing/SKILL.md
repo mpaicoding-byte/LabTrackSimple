@@ -28,3 +28,7 @@ Use this skill when running or troubleshooting tests in this repo. Tests must be
 
 ## Integration
 - Start local Supabase: `npx supabase start`.
+
+## Lint / Typecheck
+- Lint: `npm run lint`.
+- Typecheck: `tsc --noEmit` (or project script if present).
