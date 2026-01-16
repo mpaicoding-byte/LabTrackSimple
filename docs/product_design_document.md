@@ -3,14 +3,15 @@
 ## 1. Overview
 
 ### 1.1 Purpose
-Build a web-first MVP for uploading lab reports, extracting results, reviewing/approving them, and viewing trends over time. The system prioritizes fast iteration, minimal ops, and human-in-the-loop verification.
+Build a web-first MVP for uploading lab reports, extracting results, reviewing/confirming them, and viewing trends over time. The system prioritizes fast iteration, minimal ops, and human-in-the-loop verification.
 
 ### 1.2 Goals
 - Upload PDF/image lab reports and securely store artifacts.
 - Extract test name/value/unit into structured rows.
-- Provide an efficient review + approval workflow.
+- Provide an efficient review + confirmation workflow.
 - Display trends and history for numeric and text results.
 - Keep the data model minimal: name/value/unit/date/person + one `details_raw` column.
+- Support manual report creation when no document is available.
 
 ### 1.3 Non-Goals (MVP)
 - Reference range tables or abnormal flag logic.
@@ -27,7 +28,8 @@ Rationale: keep privacy tight while avoiding onboarding complexity.
 ### 2.2 Core Use Cases
 - Create a person (family member) and add a report.
 - Upload lab report PDF/photo and extract results.
-- Review and edit extracted rows, then commit to final results.
+- Review and edit extracted rows, then confirm results.
+- Create a manual report and add results without an uploaded document.
 - Search tests by name and view trends over time.
 
 ## 3. Functional Requirements
@@ -44,6 +46,7 @@ Note: members see data only after the owner links their account to a person prof
 
 ### 3.2 Reports
 - Create report with date and optional source.
+- Create manual reports without artifacts when results are entered by hand.
 - View report status: `draft`, `review_required`, `final`, `extraction_failed`.
 - Attach one or more artifacts to a report.
 - Optional notes field for report context (e.g., symptoms, fasting status).
@@ -57,17 +60,18 @@ Rationale: verification requires access to the source document.
 
 ### 3.4 Extraction
 - Trigger extraction on a report.
-- Store results in staging table with `needs_review` status.
+- Store results in `lab_results` tied to the current extraction run.
 - Extraction failure updates report status to `extraction_failed`.
+- If extraction returns zero rows, still allow manual entry in review.
 
-### 3.5 Review + Commit
-- Spreadsheet-like review UI with inline editing.
-- Approve or reject rows individually or in bulk.
-- Staging row statuses: `needs_review`, `approved`, `rejected` (rejected rows are not committed).
-- Allow manual row entry into staging, even if extraction fails.
-- Commit approved rows to final results.
-- Re-extraction creates a new run; previous final results for the report are soft-deleted on commit.
-- Uncommitted re-extraction runs do not affect existing final results.
+### 3.5 Review + Confirm
+- Spreadsheet-like review UI with inline editing (owner always editable, members read-only).
+- Add manual rows via "Add result" even when an artifact exists.
+- "Confirm & Save" persists edits and new rows, then finalizes the report.
+- "Not correct" keeps `review_required` and allows re-extraction.
+- Allow manual entry even when extraction fails or no artifact exists.
+- Re-extraction creates a new run; previous final results are marked inactive on confirm.
+- Unconfirmed re-extraction runs do not affect existing final results.
 Rationale: prevents partial re-extractions from overwriting trusted data.
 
 ### 3.6 Trends and Search
@@ -95,9 +99,10 @@ Note: if a parent record is soft-deleted, its child data should be hidden in the
 ## 5. UX Requirements
 
 ### 5.1 Extraction Review Screen
-- Editable grid with quick approve/reject.
-- Bulk actions: approve all, reject empty.
+- Always-editable grid for owners; members view-only.
+- "Add result" inserts a new manual row in the grid.
 - Inline artifact preview (PDF/image) and download link.
+- For uploaded reports, show guidance to create a manual report when a test is not in the document.
 - Flag ambiguous extractions (e.g., mixed types, unparsable numeric) with a prompt to edit or keep raw.
 
 ### 5.2 Trend View
@@ -127,7 +132,8 @@ Note: a household is created on signup, with the user as owner.
 - Minimal logging for extraction runs: success/failure and duration.
 
 ## 8. MVP Acceptance Criteria
-- Create household (auto on signup) → create person → create report → upload artifact → extract → review → commit.
+- Create household (auto on signup) → create person → create report → upload artifact → extract → review → confirm.
+- Create manual report (no artifact) → add result → confirm.
 - Search test name → see numeric trend across dates.
 - Text-only results appear in history.
 - Person date of birth saves and displays when provided.

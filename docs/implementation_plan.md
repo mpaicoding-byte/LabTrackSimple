@@ -141,6 +141,7 @@ Status: In progress (see `docs/current specs/simple-review-flow/`).
 - [x] Remove legacy `commit_results` flow and tests
 - [x] E2E: upload -> auto extract -> confirm -> final
 - [x] E2E: not correct keeps report in review_required
+- [x] Review UI revisit (always-editable grid + manual report entry) — tracked in `docs/current specs/simple-review-flow/review_ui_revisit_plan_checklist.md`
 
 ### Outputs
 - Review UI page (simple confirmation)

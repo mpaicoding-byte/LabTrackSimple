@@ -38,13 +38,13 @@ vi.mock("../useReviewData", () => ({
 
 const useReviewActionsMock = vi.fn(() => ({
   drafts: {},
-  savingRows: {},
+  newRows: [],
   commitSaving: false,
   hasDirty: false,
-  handleEdit: vi.fn(),
-  handleDraftChange: vi.fn(),
-  handleCancel: vi.fn(),
-  handleSave: vi.fn(),
+  handleExistingDraftChange: vi.fn(),
+  handleAddRow: vi.fn(),
+  handleNewRowChange: vi.fn(),
+  handleRemoveNewRow: vi.fn(),
   handleCommit: vi.fn(),
   handleNotCorrect: vi.fn(),
 }));
@@ -60,6 +60,6 @@ test("falls back to route param when reportId prop is missing", () => {
   const useReviewDataMock = vi.mocked(useReviewData);
   expect(useReviewDataMock).toHaveBeenCalledWith("report-123");
   expect(useReviewActionsMock).toHaveBeenCalledWith(
-    expect.objectContaining({ reportId: "report-123" }),
+    expect.objectContaining({ reportId: "report-123", personId: null }),
   );
 });

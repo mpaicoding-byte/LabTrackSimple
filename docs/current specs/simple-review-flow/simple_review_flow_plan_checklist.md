@@ -5,10 +5,12 @@ Deliver a simple, low-friction review UX while making the data model robust: ext
 
 ## UX Summary
 - Upload triggers auto extraction; report moves to "Needs confirmation" when ready.
-- Review page shows extracted rows with inline edits and a single primary action: "Confirm & Save".
+- Review page shows always-editable rows (owner) with "Add result" and a single primary action: "Confirm & Save".
 - Secondary action: "Not correct" keeps report in review_required and allows re-extraction.
 - No approve/reject/bulk actions in the UI.
 - Edits show a small "Edited" indicator per row.
+- Manual reports can be created without artifacts; "Add result" is available for manual or uploaded reports.
+- For uploaded reports, show guidance to create a manual report if a test is not in the document.
 
 ## Product Decisions (Powerful, Simple UX)
 - Every extraction creates a new run with its own results (full audit trail).
@@ -43,31 +45,33 @@ Deliver a simple, low-friction review UX while making the data model robust: ext
 - On upload: create extraction run (status running) and set report status to processing if needed.
 - On success: write `lab_results` for the run, set run status ready, set report status to review_required, set current_extraction_run_id.
 - On failure: set run status failed, report status extraction_failed.
+4) Manual report creation
+- Create `lab_reports` with status review_required, create an `extraction_runs` row with status ready, and set current_extraction_run_id.
 
-4) Review UI (simple UX)
+5) Review UI (simple UX)
 - Load rows from `lab_results` for current_extraction_run_id.
-- Inline edit updates `lab_results` and records `lab_result_edits`.
+- Edits and added rows are persisted to `lab_results` on confirm.
 - Add "Confirm & Save" and "Not correct" actions.
 - Hide approve/reject/bulk controls entirely.
 
-5) Confirmation flow (replace commit_results)
+6) Confirmation flow (replace commit_results)
 - Replace edge function with RPC or edge function `confirm_report_results`.
 - Confirm validates owner, run status ready, and at least one row exists.
 - Set report status final, set final_extraction_run_id, set confirmed_at/confirmed_by.
 - Mark `lab_results` for the run as is_final=true, is_active=true.
 - Mark previous runs is_active=false.
 
-6) Report list and recovery
+7) Report list and recovery
 - Report cards show Draft / Needs confirmation / Final.
 - Show "Retry extraction" when run failed or user clicks "Not correct".
 
-7) Tests
+8) Tests
 - Update unit tests for confirm RPC/function.
 - Update component tests for simplified review UI.
 - Add E2E: upload -> auto extract -> confirm -> final.
 - Add E2E: upload -> auto extract -> not correct -> stays review_required.
 
-8) Cleanup (remove legacy flow)
+9) Cleanup (remove legacy flow)
 - Remove `commit_results` edge function and related tests.
 - Drop or archive `lab_results_staging` once migration is verified.
 - Remove per-row status logic and UI copy tied to staging statuses.

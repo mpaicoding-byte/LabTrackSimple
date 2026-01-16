@@ -370,7 +370,7 @@ test.describe("report review + confirm", () => {
 
     await page.goto(`/reports/${report?.id}/review`);
     await expect(page.getByRole("heading", { name: /review results/i })).toBeVisible();
-    await expect(page.getByText(/sodium/i)).toBeVisible();
+    await expect(page.getByLabel("Name")).toHaveValue(/sodium/i);
 
     const notCorrectButton = page.getByRole("button", { name: /not correct/i });
     await expect(notCorrectButton).toBeEnabled();

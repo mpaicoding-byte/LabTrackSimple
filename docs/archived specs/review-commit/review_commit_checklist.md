@@ -1,5 +1,7 @@
 # Review + Commit Checklist (Phase 5)
 
+Deprecated: superseded by `docs/current specs/simple-review-flow/simple_review_flow_plan_checklist.md`. Kept for historical reference only.
+
 ## Red
 - [x] Unit: `commit_results` returns 400 when `lab_report_id` is missing.
 - [x] Unit: `commit_results` returns 400 when `extraction_run_id` is missing.

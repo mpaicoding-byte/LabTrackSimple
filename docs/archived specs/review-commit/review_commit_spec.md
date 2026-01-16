@@ -1,5 +1,7 @@
 # Review + Commit Spec (Phase 5)
 
+Deprecated: superseded by `docs/current specs/simple-review-flow/simple_review_flow_plan_checklist.md`. Kept for historical reference only.
+
 ## Problem
 Lab results can be extracted into staging, but there is no structured review workflow or commit path to finalize results into `lab_results`.
 

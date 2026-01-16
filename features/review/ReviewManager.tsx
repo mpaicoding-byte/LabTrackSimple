@@ -58,18 +58,19 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
 
   const {
     drafts,
-    savingRows,
+    newRows,
     commitSaving,
     hasDirty,
-    handleEdit,
-    handleDraftChange,
-    handleCancel,
-    handleSave,
+    handleExistingDraftChange,
+    handleAddRow,
+    handleNewRowChange,
+    handleRemoveNewRow,
     handleCommit,
     handleNotCorrect,
   } = useReviewActions({
     supabase,
     reportId: resolvedReportId,
+    personId: report?.person_id ?? null,
     runId,
     rows,
     setRows,
@@ -78,11 +79,12 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
       setReport((prev) => (prev ? { ...prev, status: "final" } : prev)),
   });
 
+  const totalRows = rows.length + newRows.length;
+
   const canCommit =
     role === "owner" &&
     !commitSaving &&
-    !hasDirty &&
-    rows.length > 0 &&
+    totalRows > 0 &&
     Boolean(runId);
 
   if (!sessionLoading && !session) {
@@ -109,7 +111,7 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     );
   }
 
-  if (!runId || rows.length === 0) {
+  if (!runId) {
     return wrapWithBoundary(
       <DashboardLayout>
         <ReviewEmptyState />
@@ -137,25 +139,41 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {totalRows === 0 ? (
+                <p className="text-sm text-zinc-600">No results yet.</p>
+              ) : null}
               {hasDirty && (
-                <p className="text-xs text-amber-600">Unsaved edits are pending.</p>
+                <p className="text-xs text-amber-600">
+                  Changes are saved when you confirm.
+                </p>
               )}
               <ReviewGrid
                 rows={rows}
                 drafts={drafts}
-                savingRows={savingRows}
+                newRows={newRows}
                 readOnly={role !== "owner"}
-                onEdit={handleEdit}
-                onDraftChange={handleDraftChange}
-                onCancel={handleCancel}
-                onSave={handleSave}
+                onExistingDraftChange={handleExistingDraftChange}
+                onNewRowChange={handleNewRowChange}
+                onRemoveNewRow={handleRemoveNewRow}
               />
+
+              {role === "owner" && previewUrl && (
+                <p className="text-xs text-zinc-500">
+                  Tip: Add manual results only if they appear in this uploaded report. If a test
+                  is not in the document, create a manual report instead.
+                </p>
+              )}
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-zinc-500">
                   {rows.length} results · {editedCount} edited
                 </p>
                 <div className="flex flex-wrap gap-2">
+                  {role === "owner" && (
+                    <Button variant="outline" onClick={handleAddRow}>
+                      Add result
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     onClick={handleNotCorrect}

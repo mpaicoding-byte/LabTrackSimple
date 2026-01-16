@@ -53,6 +53,23 @@ const buildSupabaseMock = ({
     eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
   }));
 
+  const insertMock = vi.fn((_payload: unknown) => ({
+    select: vi.fn(() => ({
+      data: [
+        {
+          id: "inserted-row-1",
+          name_raw: "Manual Test",
+          value_raw: "1",
+          unit_raw: null,
+          value_num: 1,
+          details_raw: null,
+          edited_at: null,
+        },
+      ],
+      error: null,
+    })),
+  }));
+
   const invokeMock = vi.fn().mockResolvedValue({
     data: { status: "final" },
     error: null,
@@ -104,6 +121,7 @@ const buildSupabaseMock = ({
       if (table === "lab_results") {
         return {
           ...buildQuery(resultRows),
+          insert: insertMock,
           update: updateMock,
         };
       }
@@ -122,7 +140,7 @@ const buildSupabaseMock = ({
     functions: {
       invoke: invokeMock,
     },
-    _mocks: { updateMock, invokeMock, createSignedUrlMock },
+    _mocks: { insertMock, updateMock, invokeMock, createSignedUrlMock },
   };
 };
 
@@ -152,13 +170,14 @@ test("renders extracted rows and confirm actions", async () => {
     ],
   });
 
-  expect(await screen.findByText("Glucose")).toBeVisible();
+  expect(await screen.findByDisplayValue("Glucose")).toBeVisible();
   expect(screen.getByRole("button", { name: /confirm & save/i })).toBeVisible();
   expect(screen.getByRole("button", { name: /not correct/i })).toBeVisible();
+  expect(screen.queryByRole("button", { name: /edit/i })).toBeNull();
   expect(screen.queryByRole("button", { name: /^Approve$/i })).toBeNull();
 });
 
-test("inline edit saves changes and marks edited", async () => {
+test("confirm saves pending edits and marks edited", async () => {
   const user = userEvent.setup();
 
   renderReview({
@@ -175,16 +194,14 @@ test("inline edit saves changes and marks edited", async () => {
     ],
   });
 
-  await screen.findByText("Glucose");
+  await screen.findByDisplayValue("Glucose");
 
-  await user.click(screen.getByRole("button", { name: /edit/i }));
-  await screen.findByRole("button", { name: /^save$/i });
-  const nameInput = screen.getByLabelText(/name/i);
+  const nameInput = screen.getByLabelText(/^name$/i);
   const valueInput = screen.getByLabelText(/^Value$/i);
   fireEvent.change(nameInput, { target: { value: "Fasting Glucose" } });
   fireEvent.change(valueInput, { target: { value: "95" } });
 
-  await user.click(screen.getByRole("button", { name: /^save$/i }));
+  await user.click(screen.getByRole("button", { name: /confirm & save/i }));
 
   await waitFor(() => {
     expect(supabaseMock._mocks.updateMock).toHaveBeenCalled();
@@ -278,5 +295,6 @@ test("inline artifact preview loads a signed URL when available", async () => {
 test("empty state messaging when no results exist", async () => {
   renderReview({ resultRows: [] });
 
-  expect(await screen.findByText(/no results to confirm/i)).toBeVisible();
+  expect(await screen.findByText(/no results yet/i)).toBeVisible();
+  expect(screen.getByRole("button", { name: /add result/i })).toBeVisible();
 });

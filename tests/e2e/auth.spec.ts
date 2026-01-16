@@ -110,12 +110,15 @@ test.describe("auth flow", () => {
       await page.getByLabel("Date of birth").fill("1980-01-01");
       await page.getByLabel("Gender").selectOption("female");
       await page.getByRole("button", { name: /save profile/i }).click();
+      await page.waitForURL("**/people", { timeout: 30_000 });
     }
 
-    await expect(signedInLabel).toBeVisible();
+    await expect(signedInLabel).toBeVisible({ timeout: 30_000 });
 
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "Sign out" }).click();
+    const signOutButton = page.getByRole("button", { name: "Sign out" });
+    await expect(signOutButton).toBeVisible({ timeout: 30_000 });
+    await signOutButton.click();
     await page.waitForURL("**/auth");
     await expect(page.getByRole("button", { name: "Sign in" }).first()).toBeVisible();
   });

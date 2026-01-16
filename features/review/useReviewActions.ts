@@ -24,9 +24,22 @@ const buildDraftFromRow = (row: ReviewRow): ReviewDraft => ({
   details_raw: row.details_raw ?? "",
 });
 
+const buildEmptyDraft = (): ReviewDraft => ({
+  name_raw: "",
+  value_raw: "",
+  unit_raw: "",
+  value_num: "",
+  details_raw: "",
+});
+
+const buildClientRowId = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 type UseReviewActionsParams = {
   supabase: ReturnType<typeof getSupabaseBrowserClient>;
   reportId?: string;
+  personId: string | null;
   runId: string | null;
   rows: ReviewRow[];
   setRows: Dispatch<SetStateAction<ReviewRow[]>>;
@@ -39,6 +52,7 @@ type UseReviewActionsParams = {
 export const useReviewActions = ({
   supabase,
   reportId,
+  personId,
   runId,
   rows,
   setRows,
@@ -46,75 +60,40 @@ export const useReviewActions = ({
   onCommitSuccess,
 }: UseReviewActionsParams) => {
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
-  const [savingRows, setSavingRows] = useState<Record<string, boolean>>({});
+  const [newRows, setNewRows] = useState<Array<{ id: string; draft: ReviewDraft }>>(
+    [],
+  );
   const [commitSaving, setCommitSaving] = useState(false);
 
-  const hasDirty = useMemo(() => Object.keys(drafts).length > 0, [drafts]);
+  const hasDirty = useMemo(
+    () => Object.keys(drafts).length > 0 || newRows.length > 0,
+    [drafts, newRows],
+  );
 
-  const handleEdit = (rowId: string) => {
+  const handleExistingDraftChange = (rowId: string, update: Partial<ReviewDraft>) => {
     const row = rows.find((item) => item.id === rowId);
-    if (!row) return;
+    const base = drafts[rowId] ?? (row ? buildDraftFromRow(row) : buildEmptyDraft());
 
-    setDrafts((prev) => ({ ...prev, [rowId]: buildDraftFromRow(row) }));
-  };
-
-  const handleDraftChange = (rowId: string, update: Partial<ReviewDraft>) => {
     setDrafts((prev) => ({
       ...prev,
-      [rowId]: { ...prev[rowId], ...update },
+      [rowId]: { ...base, ...update },
     }));
   };
 
-  const handleCancel = (rowId: string) => {
-    setDrafts((prev) => {
-      const next = { ...prev };
-      delete next[rowId];
-      return next;
-    });
+  const handleAddRow = () => {
+    setNewRows((prev) => [...prev, { id: buildClientRowId(), draft: buildEmptyDraft() }]);
   };
 
-  const handleSave = async (rowId: string) => {
-    const draft = drafts[rowId];
-    if (!draft) return;
+  const handleNewRowChange = (rowId: string, update: Partial<ReviewDraft>) => {
+    setNewRows((prev) =>
+      prev.map((row) =>
+        row.id === rowId ? { ...row, draft: { ...row.draft, ...update } } : row,
+      ),
+    );
+  };
 
-    if (!draft.name_raw.trim() || !draft.value_raw.trim()) {
-      setNotice({ tone: "error", message: "Name and value are required." });
-      return;
-    }
-
-    setSavingRows((prev) => ({ ...prev, [rowId]: true }));
-    const valueNum =
-      draft.value_num.trim() === "" ? null : parseValueNum(draft.value_num);
-
-    const payload = {
-      name_raw: draft.name_raw.trim(),
-      value_raw: draft.value_raw.trim(),
-      unit_raw: draft.unit_raw.trim() || null,
-      value_num: valueNum,
-      details_raw: draft.details_raw.trim() || null,
-      edited_at: new Date().toISOString(),
-    } as const;
-
-    const { error: updateError } = await supabase
-      .from("lab_results")
-      .update(payload)
-      .eq("id", rowId);
-
-    if (updateError) {
-      setNotice({ tone: "error", message: updateError.message });
-    } else {
-      setRows((prev) =>
-        prev.map((row) =>
-          row.id === rowId
-            ? { ...row, ...payload }
-            : row,
-        ),
-      );
-      handleCancel(rowId);
-      setNotice({ tone: "success", message: "Row updated." });
-    }
-
-    setSavingRows((prev) => ({ ...prev, [rowId]: false }));
+  const handleRemoveNewRow = (rowId: string) => {
+    setNewRows((prev) => prev.filter((row) => row.id !== rowId));
   };
 
   const handleCommit = async () => {
@@ -122,13 +101,99 @@ export const useReviewActions = ({
       setNotice({ tone: "error", message: "Missing report context." });
       return;
     }
+    if (!personId) {
+      setNotice({ tone: "error", message: "Missing person context." });
+      return;
+    }
+
     setCommitSaving(true);
+
+    const timestamp = new Date().toISOString();
+
+    const draftUpdates = Object.entries(drafts);
+    for (const [rowId, draft] of draftUpdates) {
+      if (!draft.name_raw.trim() || !draft.value_raw.trim()) {
+        setNotice({ tone: "error", message: "Name and value are required." });
+        setCommitSaving(false);
+        return;
+      }
+
+      const valueNum =
+        draft.value_num.trim() === "" ? null : parseValueNum(draft.value_num);
+
+      const payload = {
+        name_raw: draft.name_raw.trim(),
+        value_raw: draft.value_raw.trim(),
+        unit_raw: draft.unit_raw.trim() || null,
+        value_num: valueNum,
+        details_raw: draft.details_raw.trim() || null,
+        edited_at: timestamp,
+      } as const;
+
+      const { error: updateError } = await supabase
+        .from("lab_results")
+        .update(payload)
+        .eq("id", rowId);
+
+      if (updateError) {
+        setNotice({ tone: "error", message: updateError.message });
+        setCommitSaving(false);
+        return;
+      }
+
+      setRows((prev) =>
+        prev.map((row) => (row.id === rowId ? { ...row, ...payload } : row)),
+      );
+    }
+
+    if (draftUpdates.length > 0) {
+      setDrafts({});
+    }
+
+    if (newRows.length > 0) {
+      for (const row of newRows) {
+        if (!row.draft.name_raw.trim() || !row.draft.value_raw.trim()) {
+          setNotice({ tone: "error", message: "Name and value are required." });
+          setCommitSaving(false);
+          return;
+        }
+      }
+
+      const payload = newRows.map((row) => {
+        const valueNum =
+          row.draft.value_num.trim() === ""
+            ? null
+            : parseValueNum(row.draft.value_num);
+        return {
+          lab_report_id: reportId,
+          person_id: personId,
+          extraction_run_id: runId,
+          name_raw: row.draft.name_raw.trim(),
+          value_raw: row.draft.value_raw.trim(),
+          unit_raw: row.draft.unit_raw.trim() || null,
+          value_num: valueNum,
+          details_raw: row.draft.details_raw.trim() || null,
+        };
+      });
+
+      const { data: insertedRows, error: insertError } = await supabase
+        .from("lab_results")
+        .insert(payload)
+        .select("id, name_raw, value_raw, unit_raw, value_num, details_raw, edited_at");
+
+      if (insertError) {
+        setNotice({ tone: "error", message: insertError.message });
+        setCommitSaving(false);
+        return;
+      }
+
+      setRows((prev) => [...prev, ...((insertedRows ?? []) as ReviewRow[])]);
+      setNewRows([]);
+    }
 
     const { data, error: commitError } = await supabase.functions.invoke(
       "confirm_report_results",
-      {
-        body: { lab_report_id: reportId },
-      },
+      { body: { lab_report_id: reportId } },
     );
 
     if (commitError) {
@@ -174,13 +239,13 @@ export const useReviewActions = ({
 
   return {
     drafts,
-    savingRows,
+    newRows,
     commitSaving,
     hasDirty,
-    handleEdit,
-    handleDraftChange,
-    handleCancel,
-    handleSave,
+    handleExistingDraftChange,
+    handleAddRow,
+    handleNewRowChange,
+    handleRemoveNewRow,
     handleCommit,
     handleNotCorrect,
   };

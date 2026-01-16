@@ -14,7 +14,7 @@
 - Web App
   - Auth + session
   - Report creation + artifact upload
-  - Extraction review UI
+  - Extraction review UI + manual entry
   - Trends + search
 - Supabase
   - Tables: households, household_members, people, reports, artifacts, extraction_runs, results
@@ -82,7 +82,7 @@ Rationale: `user_id` links a person to a login when available, while still allow
 #### `extraction_runs`
 - `id uuid pk`
 - `lab_report_id uuid not null references lab_reports(id)`
-- `status text not null default 'running'` -- `running | ready | failed | confirmed | rejected`
+- `status text not null default 'running'` -- `running | ready | failed | confirmed | rejected` (rejected = "Not correct")
 - `started_at timestamptz not null default now()`
 - `completed_at timestamptz null`
 - `error text null`
@@ -117,14 +117,14 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - Use CHECK constraints (or enums) for status fields to prevent invalid values:
   - `lab_reports.status`: `draft | review_required | final | extraction_failed`
   - `lab_artifacts.status`: `pending | ready | failed`
-  - `extraction_runs.status`: `running | ready | failed | confirmed | rejected`
+  - `extraction_runs.status`: `running | ready | failed | confirmed | rejected` (rejected = "Not correct")
 - `people.gender`: `female | male` (or null)
 - `household_members`: UNIQUE constraint on `(household_id, user_id)` to prevent duplicate memberships.
 - `household_members`: UNIQUE partial constraint on `(household_id) WHERE role = 'owner'` to ensure a single owner per household.
 - `people`: UNIQUE partial constraint on `(household_id, user_id) WHERE user_id IS NOT NULL` to prevent linking one user to multiple people in the same household.
 
 ### 2.4 Denormalization
-- `lab_results.person_id` is copied from `lab_reports.person_id` during confirmation to speed up trend queries without joins.
+- `lab_results.person_id` is set at row creation (extraction or manual) to speed up trend queries without joins.
 Rationale: trend queries are the primary read path in MVP and should be fast and simple.
 
 ## 3. Storage
@@ -155,7 +155,7 @@ Rationale: prevents partially uploaded artifacts from being processed and avoids
 - `value_num` is populated when the extracted value is parseable as a number; users can correct it during review.
 - LLM API keys stored in Supabase secrets.
 - `details_raw` stores all additional text not mapped to core fields.
-- If zero rows are extracted, still set `lab_reports.status = review_required` and allow manual edits.
+- If zero rows are extracted, still set `lab_reports.status = review_required` and allow manual entry.
 
 ### 4.2 `confirm_report_results({ lab_report_id })`
 
@@ -193,12 +193,16 @@ Note: for child tables, exclude rows whose parent is soft-deleted (via views or 
 ### 6.1 Report Creation
 - Form: `person_id`, `report_date`, `source`.
 - Artifact upload list with status.
+- Manual report path (no artifact): create `lab_reports` with `status = review_required`, create an `extraction_runs` row with `status = ready`, and set `current_extraction_run_id`.
 
 ### 6.2 Extraction Review
-- Editable grid for `name_raw`, `value_raw`, `unit_raw`, `details_raw`.
-- Inline edits persist directly to `lab_results`.
+- Always-editable grid for owners (`name_raw`, `value_raw`, `unit_raw`, `value_num`, `details_raw`); members are view-only.
+- Edits and new rows are saved when "Confirm & Save" is clicked.
 - Primary action: "Confirm & Save"; secondary action: "Not correct" (keeps `review_required`).
+- "Not correct" updates `extraction_runs.status = rejected` for the current run.
+- "Add result" appends a new manual row (available for manual or uploaded reports).
 - Inline artifact preview (PDF/image) and download link.
+- For uploaded reports, show guidance to create a manual report if a test is not in the document.
 - Flag ambiguous parses (e.g., mixed type or non-numeric values in numeric context) with a prompt to edit or keep raw.
 
 ### 6.3 Trends

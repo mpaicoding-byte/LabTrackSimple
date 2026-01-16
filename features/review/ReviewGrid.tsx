@@ -8,24 +8,112 @@ import type { ReviewDraft, ReviewRow } from "./types";
 type ReviewGridProps = {
   rows: ReviewRow[];
   drafts: Record<string, ReviewDraft>;
-  savingRows: Record<string, boolean>;
+  newRows: Array<{ id: string; draft: ReviewDraft }>;
   readOnly: boolean;
-  onEdit: (rowId: string) => void;
-  onDraftChange: (rowId: string, draft: Partial<ReviewDraft>) => void;
-  onCancel: (rowId: string) => void;
-  onSave: (rowId: string) => void;
+  onExistingDraftChange: (rowId: string, draft: Partial<ReviewDraft>) => void;
+  onNewRowChange: (rowId: string, draft: Partial<ReviewDraft>) => void;
+  onRemoveNewRow: (rowId: string) => void;
 };
 
 export const ReviewGrid = ({
   rows,
   drafts,
-  savingRows,
+  newRows,
   readOnly,
-  onEdit,
-  onDraftChange,
-  onCancel,
-  onSave,
+  onExistingDraftChange,
+  onNewRowChange,
+  onRemoveNewRow,
 }: ReviewGridProps) => {
+  const renderEditableRow = (
+    rowId: string,
+    values: {
+      name_raw: string;
+      value_raw: string;
+      unit_raw: string;
+      value_num: string;
+      details_raw: string;
+    },
+    {
+      isEdited = false,
+      removable = false,
+    }: { isEdited?: boolean; removable?: boolean } = {},
+  ) => (
+    <tr key={rowId} className="align-top">
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-1">
+          <Input
+            aria-label="Name"
+            value={values.name_raw}
+            onChange={(event) =>
+              removable
+                ? onNewRowChange(rowId, { name_raw: event.target.value })
+                : onExistingDraftChange(rowId, { name_raw: event.target.value })
+            }
+          />
+          {isEdited && (
+            <span className="text-xs font-medium text-indigo-500">Edited</span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <Input
+          aria-label="Value"
+          value={values.value_raw}
+          onChange={(event) =>
+            removable
+              ? onNewRowChange(rowId, { value_raw: event.target.value })
+              : onExistingDraftChange(rowId, { value_raw: event.target.value })
+          }
+        />
+      </td>
+      <td className="px-4 py-3">
+        <Input
+          aria-label="Unit"
+          value={values.unit_raw}
+          onChange={(event) =>
+            removable
+              ? onNewRowChange(rowId, { unit_raw: event.target.value })
+              : onExistingDraftChange(rowId, { unit_raw: event.target.value })
+          }
+        />
+      </td>
+      <td className="px-4 py-3">
+        <Input
+          aria-label="Numeric value"
+          inputMode="decimal"
+          value={values.value_num}
+          onChange={(event) =>
+            removable
+              ? onNewRowChange(rowId, { value_num: event.target.value })
+              : onExistingDraftChange(rowId, { value_num: event.target.value })
+          }
+        />
+      </td>
+      <td className="px-4 py-3">
+        <Input
+          aria-label="Details"
+          value={values.details_raw}
+          onChange={(event) =>
+            removable
+              ? onNewRowChange(rowId, { details_raw: event.target.value })
+              : onExistingDraftChange(rowId, { details_raw: event.target.value })
+          }
+        />
+      </td>
+      <td className="px-4 py-3">
+        {removable ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemoveNewRow(rowId)}
+          >
+            Remove
+          </Button>
+        ) : null}
+      </td>
+    </tr>
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white/80">
@@ -41,127 +129,56 @@ export const ReviewGrid = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200">
-            {rows.map((row) => {
-              const draft = drafts[row.id];
-              const isEditing = Boolean(draft);
-              const isSaving = Boolean(savingRows[row.id]);
-              const isEdited = Boolean(row.edited_at);
-
-              return (
-                <tr key={row.id} className="align-top">
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <Input
-                        aria-label="Name"
-                        value={draft.name_raw}
-                        onChange={(event) =>
-                          onDraftChange(row.id, { name_raw: event.target.value })
-                        }
-                      />
-                    ) : (
+            {readOnly
+              ? rows.map((row) => (
+                  <tr key={row.id} className="align-top">
+                    <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
                         <span className="text-zinc-900">{row.name_raw}</span>
-                        {isEdited && (
+                        {row.edited_at && (
                           <span className="text-xs font-medium text-indigo-500">
                             Edited
                           </span>
                         )}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <Input
-                        aria-label="Value"
-                        value={draft.value_raw}
-                        onChange={(event) =>
-                          onDraftChange(row.id, { value_raw: event.target.value })
-                        }
-                      />
-                    ) : (
+                    </td>
+                    <td className="px-4 py-3">
                       <span className="text-zinc-700">{row.value_raw}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <Input
-                        aria-label="Unit"
-                        value={draft.unit_raw}
-                        onChange={(event) =>
-                          onDraftChange(row.id, { unit_raw: event.target.value })
-                        }
-                      />
-                    ) : (
+                    </td>
+                    <td className="px-4 py-3">
                       <span className="text-zinc-700">{row.unit_raw ?? "—"}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <Input
-                        aria-label="Numeric value"
-                        inputMode="decimal"
-                        value={draft.value_num}
-                        onChange={(event) =>
-                          onDraftChange(row.id, { value_num: event.target.value })
-                        }
-                      />
-                    ) : (
-                      <span className="text-zinc-700">
-                        {row.value_num ?? "—"}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <Input
-                        aria-label="Details"
-                        value={draft.details_raw}
-                        onChange={(event) =>
-                          onDraftChange(row.id, { details_raw: event.target.value })
-                        }
-                      />
-                    ) : (
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-zinc-700">{row.value_num ?? "—"}</span>
+                    </td>
+                    <td className="px-4 py-3">
                       <span className="text-zinc-600">{row.details_raw ?? "—"}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {readOnly ? (
-                        <span className="text-xs text-zinc-400">Owner only</span>
-                      ) : isEditing ? (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => onSave(row.id)}
-                            disabled={isSaving}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onCancel(row.id)}
-                            disabled={isSaving}
-                          >
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEdit(row.id)}
-                          >
-                            Edit
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-zinc-400">Owner only</span>
+                    </td>
+                  </tr>
+                ))
+              : rows.map((row) =>
+                  renderEditableRow(
+                    row.id,
+                    {
+                      name_raw: drafts[row.id]?.name_raw ?? row.name_raw,
+                      value_raw: drafts[row.id]?.value_raw ?? row.value_raw,
+                      unit_raw: drafts[row.id]?.unit_raw ?? row.unit_raw ?? "",
+                      value_num:
+                        drafts[row.id]?.value_num ??
+                        (row.value_num === null ? "" : String(row.value_num)),
+                      details_raw:
+                        drafts[row.id]?.details_raw ?? row.details_raw ?? "",
+                    },
+                    { isEdited: Boolean(row.edited_at) },
+                  ),
+                )}
+            {!readOnly &&
+              newRows.map((row) =>
+                renderEditableRow(row.id, row.draft, { removable: true }),
+              )}
           </tbody>
         </table>
       </div>

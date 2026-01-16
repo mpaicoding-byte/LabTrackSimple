@@ -5,6 +5,15 @@ import { vi } from "vitest";
 
 import { ReportsManager } from "../ReportsManager";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/reports",
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/layout/DashboardLayout", () => ({
   DashboardLayout: () => {
     throw new Error("boom");

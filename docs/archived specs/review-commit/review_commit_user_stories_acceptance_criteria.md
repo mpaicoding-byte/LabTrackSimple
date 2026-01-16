@@ -1,5 +1,7 @@
 # Review + Commit — User Stories & Acceptance Criteria
 
+Deprecated: superseded by `docs/current specs/simple-review-flow/simple_review_flow_plan_checklist.md`. Kept for historical reference only.
+
 ## User Stories
 1. As an owner, I can review extracted staging rows so I can validate results before they become final.
 2. As an owner, I can edit extracted values so the final results are accurate.

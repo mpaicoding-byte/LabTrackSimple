@@ -1,4 +1,5 @@
 LabTrackSimple Validation and Review Plan (Post-Checks)
+Updated to reflect the simple review flow (confirm_report_results) and manual report entry.
 
 Validation Evidence (completed)
 - Dev server start: required escalated run; Next dev bound to 0.0.0.0:3000 after initial EPERM.
@@ -9,8 +10,8 @@ Validation Evidence (completed)
   - npm run test:e2e passed against the configured Supabase project (MCP verified).
 - Supabase services note: use MCP to confirm edge functions and check logs if extraction stalls.
 - Codebase checks:
-  - commit_results edge function is missing (only extract_report exists).
-  - extract_report writes placeholder staging rows.
+  - confirm_report_results edge function is implemented; commit_results is removed.
+  - extract_report writes lab_results for each extraction run (placeholder values until the Phase 4b adapter).
   - ReportsManager.tsx (663 lines) and PeopleManager.tsx (326 lines) exceed soft cap.
   - lab_results_staging does not include household_id in the final schema (dropped in migrations); docs align on this.
   - components/ui/card.tsx includes light-mode defaults.
@@ -30,23 +31,21 @@ Plan of Action (prioritized)
 2) Resolve data/documentation mismatch
 - Confirm docs reflect the final schema: lab_results_staging has no household_id.
 
-3) Phase 5 core implementation (Review + Commit)
-- Add commit_results edge function (service role, input validation, atomic commit, RLS bypass).
-- Implement Review Grid read-only view, then inline edit + status updates.
-- Add bulk actions and commit button logic (block when needs_review remains).
-- Add inline artifact preview using signed URLs.
+3) Phase 5 core implementation (Review + Confirm)
+- Implemented always-editable review grid, confirm_report_results, and "Not correct" flow.
+- Inline artifact preview uses signed URLs.
 
 4) Tests for Phase 5
-- Add component tests for review grid interactions.
-- Add at least one E2E test for extraction -> review -> commit flow.
+- Component tests cover review editing UX.
+- E2E tests cover extract -> review -> confirm and not-correct flows.
 
 5) UX hardening (targeted)
 - Completed: light-mode Card styles, Skeleton component usage, error boundaries, and mobile header.
 
 6) Optional data audit improvements (post-MVP)
-- Consider updated_at or committed_at columns for audit trails.
+- Consider updated_at or confirmed_at columns for audit trails.
 
 Deliverables
 - Updated analysis report with verified facts and risks.
-- Implemented commit_results function and review UI.
+- Implemented confirm_report_results and always-editable review UI.
 - Test evidence: unit/component/E2E run logs.

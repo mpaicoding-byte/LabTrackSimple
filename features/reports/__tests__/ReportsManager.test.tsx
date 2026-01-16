@@ -6,12 +6,16 @@ import { vi } from "vitest";
 
 import { ReportsManager } from "../ReportsManager";
 
+const pushMock = vi.fn();
+const replaceMock = vi.fn();
+const prefetchMock = vi.fn();
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/reports",
   useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
+    push: pushMock,
+    replace: replaceMock,
+    prefetch: prefetchMock,
   }),
 }));
 
@@ -60,6 +64,14 @@ const deleteArtifactMock = vi.fn(() => ({
 
 const updateReportMock = vi.fn(() => ({
   eq: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+const insertRunMock = vi.fn((_payload: unknown) => ({
+  select: vi.fn().mockReturnThis(),
+  single: vi.fn().mockResolvedValue({
+    data: { id: "run-1", status: "ready" },
+    error: null,
+  }),
 }));
 
 const uploadMock = vi.fn().mockResolvedValue({
@@ -115,6 +127,12 @@ const supabaseMock = {
         insert: insertArtifactMock,
         update: updateArtifactMock,
         delete: deleteArtifactMock,
+      };
+    }
+
+    if (table === "extraction_runs") {
+      return {
+        insert: insertRunMock,
       };
     }
 
@@ -243,4 +261,57 @@ test("owners can save a report from a file, upload its artifact, and auto-extrac
   });
 
   vi.unstubAllGlobals();
+});
+
+test("owners can create a manual report and continue to review", async () => {
+  render(<ReportsManager />);
+
+  await screen.findByRole("heading", { name: /lab reports/i });
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /create manual report/i }),
+  );
+
+  await userEvent.click(
+    await screen.findByRole("button", { name: /ada lovelace/i }),
+  );
+
+  const dateInput = screen.getByLabelText(/report date/i);
+  await userEvent.clear(dateInput);
+  await userEvent.type(dateInput, "2024-01-10");
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /create report/i }),
+  );
+
+  await waitFor(() => {
+    expect(insertReportMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        household_id: "household-1",
+        person_id: "person-1",
+        report_date: "2024-01-10",
+        source: expect.stringMatching(/manual/i),
+        status: "review_required",
+      }),
+    );
+  });
+
+  await waitFor(() => {
+    expect(insertRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lab_report_id: "report-1",
+        status: "ready",
+      }),
+    );
+  });
+
+  await waitFor(() => {
+    expect(updateReportMock).toHaveBeenCalledWith(
+      expect.objectContaining({ current_extraction_run_id: "run-1" }),
+    );
+  });
+
+  await waitFor(() => {
+    expect(pushMock).toHaveBeenCalledWith("/reports/report-1/review");
+  });
 });
