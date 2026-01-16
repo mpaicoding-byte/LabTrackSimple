@@ -62,11 +62,6 @@ const updateReportMock = vi.fn(() => ({
   eq: vi.fn().mockResolvedValue({ error: null }),
 }));
 
-const insertStagingMock = vi.fn(() => ({
-  select: vi.fn().mockReturnThis(),
-  single: vi.fn().mockResolvedValue({ data: null, error: null }),
-}));
-
 const uploadMock = vi.fn().mockResolvedValue({
   data: { path: "mock-path" },
   error: null,
@@ -120,12 +115,6 @@ const supabaseMock = {
         insert: insertArtifactMock,
         update: updateArtifactMock,
         delete: deleteArtifactMock,
-      };
-    }
-
-    if (table === "lab_results_staging") {
-      return {
-        insert: insertStagingMock,
       };
     }
 
@@ -190,7 +179,7 @@ test("does not crash when the session becomes null", async () => {
   });
 });
 
-test("owners can save a report from a file and upload its artifact", async () => {
+test("owners can save a report from a file, upload its artifact, and auto-extract", async () => {
   vi.stubGlobal("crypto", {
     randomUUID: () => "artifact-123",
   });
@@ -247,91 +236,11 @@ test("owners can save a report from a file and upload its artifact", async () =>
     file,
   );
 
-  vi.unstubAllGlobals();
-});
-
-test("owners can trigger extraction for a report", async () => {
-  reportsData = [
-    {
-      id: "report-1",
-      person_id: "person-1",
-      report_date: "2024-01-10",
-      source: "Quest",
-      status: "draft",
-      created_at: "2024-01-10T12:00:00Z",
-    },
-  ];
-
-  render(<ReportsManager />);
-
-  const extractButton = await screen.findByRole("button", {
-    name: /extract/i,
-  });
-  await userEvent.click(extractButton);
-
   await waitFor(() => {
     expect(invokeMock).toHaveBeenCalledWith("extract_report", {
       body: { lab_report_id: "report-1" },
     });
   });
-
-  await screen.findByText(/review required/i);
-});
-
-test("owners can add a manual staging row", async () => {
-  reportsData = [
-    {
-      id: "report-1",
-      person_id: "person-1",
-      report_date: "2024-01-10",
-      source: "Quest",
-      status: "draft",
-      created_at: "2024-01-10T12:00:00Z",
-    },
-  ];
-
-  vi.stubGlobal("crypto", {
-    randomUUID: () => "run-123",
-  });
-
-  render(<ReportsManager />);
-
-  await userEvent.type(
-    await screen.findByLabelText(/result name/i),
-    "Glucose",
-  );
-  await userEvent.type(
-    screen.getByLabelText(/result value/i),
-    "92",
-  );
-  await userEvent.type(
-    screen.getByLabelText(/result unit/i),
-    "mg\/dL",
-  );
-  await userEvent.type(
-    screen.getByLabelText(/result details/i),
-    "fasting",
-  );
-
-  await userEvent.click(
-    screen.getByRole("button", { name: /add result/i }),
-  );
-
-  await waitFor(() => {
-    expect(insertStagingMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        lab_report_id: "report-1",
-        extraction_run_id: "run-123",
-        name_raw: "Glucose",
-        value_raw: "92",
-        unit_raw: "mg/dL",
-        value_num: 92,
-        details_raw: "fasting",
-      }),
-    );
-  });
-
-  await screen.findByText(/review required/i);
 
   vi.unstubAllGlobals();
 });

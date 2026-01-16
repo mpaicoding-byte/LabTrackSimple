@@ -2,6 +2,7 @@
   "name": "labtracksimple",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,7 @@
     "lint": "eslint",
     "test": "node --test",
     "test:unit": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "node scripts/run_e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",

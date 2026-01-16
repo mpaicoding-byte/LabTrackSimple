@@ -19,7 +19,7 @@ test("Phase 4 edge function exists", () => {
   );
 });
 
-test("Phase 4 edge function writes staging rows and updates report status", () => {
+test("Phase 4 edge function writes results and updates report status/run", () => {
   assert.ok(
     existsSync(files.edgeFunction),
     "extract_report edge function missing",
@@ -27,23 +27,20 @@ test("Phase 4 edge function writes staging rows and updates report status", () =
   const source = read(files.edgeFunction);
 
   assert.match(source, /extraction_run_id/, "extraction_run_id missing");
-  assert.match(source, /lab_results_staging/, "staging insert missing");
+  assert.match(source, /extraction_runs/, "extraction_runs insert missing");
+  assert.match(source, /lab_results/, "lab_results insert missing");
   assert.match(source, /lab_reports/, "report status update missing");
+  assert.match(source, /current_extraction_run_id/, "current_extraction_run_id update missing");
   assert.match(source, /review_required/, "review_required update missing");
   assert.match(source, /extraction_failed/, "extraction_failed update missing");
 });
 
-test("Phase 4 UI can trigger extraction and manual staging entry", () => {
+test("Phase 4 UI can trigger extraction", () => {
   const source = read(files.reportsManager);
 
   assert.match(
     source,
     /functions\.invoke\(['"]extract_report['"]/,
     "extract_report invoke missing",
-  );
-  assert.match(
-    source,
-    /lab_results_staging/,
-    "manual staging insert missing",
   );
 });

@@ -7,7 +7,7 @@
 - Backend: Supabase
   - Postgres (data)
   - Storage (private artifacts)
-  - Edge Functions (extraction + commit)
+  - Edge Functions (extraction + confirm)
 - LLM provider: called only from Edge Functions
 
 ### 1.2 High-Level Components
@@ -17,10 +17,10 @@
   - Extraction review UI
   - Trends + search
 - Supabase
-  - Tables: households, household_members, people, reports, artifacts, staging, final results
+  - Tables: households, household_members, people, reports, artifacts, extraction_runs, results
   - RLS policies by household membership and role
   - Private storage bucket for artifacts
-  - Edge Functions: `extract_report`, `commit_results`
+  - Edge Functions: `extract_report`, `confirm_report_results`
 
 ## 2. Data Model
 
@@ -60,6 +60,10 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - `report_date date not null`
 - `source text null`
 - `status text not null default 'draft'` -- `draft | review_required | final | extraction_failed`
+- `current_extraction_run_id uuid null references extraction_runs(id)`
+- `final_extraction_run_id uuid null references extraction_runs(id)`
+- `confirmed_at timestamptz null`
+- `confirmed_by uuid null`
 - `notes text null`
 - `deleted_at timestamptz null`
 - `created_at timestamptz default now()`
@@ -75,19 +79,15 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - `deleted_at timestamptz null`
 - `created_at timestamptz default now()`
 
-#### `lab_results_staging`
+#### `extraction_runs`
 - `id uuid pk`
 - `lab_report_id uuid not null references lab_reports(id)`
-- `artifact_id uuid null references lab_artifacts(id)`
-- `extraction_run_id uuid not null`
-- `name_raw text not null`
-- `value_raw text not null`
-- `unit_raw text null`
-- `value_num double precision null`
-- `details_raw text null`
-- `status text not null default 'needs_review'` -- `needs_review | approved | rejected`
-- `created_at timestamptz default now()`
-- `deleted_at timestamptz null`
+- `status text not null default 'running'` -- `running | ready | failed | confirmed | rejected`
+- `started_at timestamptz not null default now()`
+- `completed_at timestamptz null`
+- `error text null`
+- `created_by uuid null`
+- `created_at timestamptz not null default now()`
 
 #### `lab_results`
 - `id uuid pk`
@@ -99,6 +99,10 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - `unit_raw text null`
 - `value_num double precision null`
 - `details_raw text null`
+- `is_final boolean not null default false`
+- `is_active boolean not null default false`
+- `edited_at timestamptz null`
+- `edited_by uuid null`
 - `created_at timestamptz default now()`
 - `deleted_at timestamptz null`
 
@@ -106,21 +110,21 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - `lab_results` composite index: `(person_id, name_raw)`
 - `lab_results` index on `lab_report_id`
 - `lab_results` index on `(name_raw)` for cross-person search within a household
-- `lab_results_staging` index on `(extraction_run_id)` for quick run grouping
-- `lab_results_staging` index on `(lab_report_id)` for review queries
+- `extraction_runs` index on `(lab_report_id)` for report lookups
+- `lab_results` index on `(lab_report_id, extraction_run_id)` for review queries
 
 ### 2.3 Constraints
 - Use CHECK constraints (or enums) for status fields to prevent invalid values:
   - `lab_reports.status`: `draft | review_required | final | extraction_failed`
   - `lab_artifacts.status`: `pending | ready | failed`
-  - `lab_results_staging.status`: `needs_review | approved | rejected`
+  - `extraction_runs.status`: `running | ready | failed | confirmed | rejected`
 - `people.gender`: `female | male` (or null)
 - `household_members`: UNIQUE constraint on `(household_id, user_id)` to prevent duplicate memberships.
 - `household_members`: UNIQUE partial constraint on `(household_id) WHERE role = 'owner'` to ensure a single owner per household.
 - `people`: UNIQUE partial constraint on `(household_id, user_id) WHERE user_id IS NOT NULL` to prevent linking one user to multiple people in the same household.
 
 ### 2.4 Denormalization
-- `lab_results.person_id` is copied from `lab_reports.person_id` during commit to speed up trend queries without joins.
+- `lab_results.person_id` is copied from `lab_reports.person_id` during confirmation to speed up trend queries without joins.
 Rationale: trend queries are the primary read path in MVP and should be fast and simple.
 
 ## 3. Storage
@@ -140,31 +144,31 @@ Rationale: prevents partially uploaded artifacts from being processed and avoids
 ### 4.1 `extract_report({ lab_report_id })`
 
 #### Responsibilities
-- Generate `extraction_run_id`.
+- Create an `extraction_runs` row (`status = running`).
 - Read all `ready` artifacts for the report.
 - Extract rows: `name_raw`, `value_raw`, `unit_raw`, optional `value_num`, and `details_raw`.
-- Write rows to `lab_results_staging`.
+- Write rows to `lab_results` for the current run.
 - Update `lab_reports.status` to `review_required` on success or `extraction_failed` on failure.
+- Set `lab_reports.current_extraction_run_id` to the run on success.
 
 #### Notes
-- `extraction_run_id` is a UUID generated inside the function for grouping staging rows; no separate table in MVP.
 - `value_num` is populated when the extracted value is parseable as a number; users can correct it during review.
 - LLM API keys stored in Supabase secrets.
 - `details_raw` stores all additional text not mapped to core fields.
-- If zero rows are extracted, still set `lab_reports.status = review_required` and allow manual entry.
+- If zero rows are extracted, still set `lab_reports.status = review_required` and allow manual edits.
 
-### 4.2 `commit_results({ lab_report_id, extraction_run_id })`
+### 4.2 `confirm_report_results({ lab_report_id })`
 
 #### Responsibilities
-- In a transaction:
-  - Soft-delete previous `lab_results` for `lab_report_id` (optional but recommended).
-  - Insert approved rows from `lab_results_staging` into `lab_results`.
-  - Set `person_id` on `lab_results` by joining `lab_reports.person_id`.
-  - Update `lab_reports.status = final`.
+- Validate ownership and that the current run is `ready`.
+- Ensure at least one row exists for the current run.
+- Update `lab_reports.status = final`, set `final_extraction_run_id`, `confirmed_at`, `confirmed_by`.
+- Mark the run as `confirmed` and set `completed_at`.
+- Mark current run rows `is_final = true` and `is_active = true`.
+- Mark previous run rows `is_active = false`.
 
 #### Notes
-- Only `approved` staging rows are committed; `rejected` rows are ignored.
-- Existing final results remain unchanged until commit is executed.
+- Existing final results remain unchanged until confirm is executed.
 
 ## 5. API and Data Access
 
@@ -181,7 +185,7 @@ Rationale: prevents partially uploaded artifacts from being processed and avoids
 - Consider views that automatically filter out soft-deleted rows.
 Rationale: enforces owner/member privacy without cross-household sharing.
 Note: members have no access until their `people.user_id` is linked by the owner.
-Note: in MVP, only owners can create reports, upload artifacts, edit staging, and commit results.
+Note: in MVP, only owners can create reports, upload artifacts, edit results, and confirm results.
 Note: for child tables, exclude rows whose parent is soft-deleted (via views or join checks).
 
 ## 6. Frontend Views
@@ -192,8 +196,8 @@ Note: for child tables, exclude rows whose parent is soft-deleted (via views or 
 
 ### 6.2 Extraction Review
 - Editable grid for `name_raw`, `value_raw`, `unit_raw`, `details_raw`.
-- Approve/reject row actions and bulk actions.
-- Allow manual row entry into staging (no extraction required).
+- Inline edits persist directly to `lab_results`.
+- Primary action: "Confirm & Save"; secondary action: "Not correct" (keeps `review_required`).
 - Inline artifact preview (PDF/image) and download link.
 - Flag ambiguous parses (e.g., mixed type or non-numeric values in numeric context) with a prompt to edit or keep raw.
 

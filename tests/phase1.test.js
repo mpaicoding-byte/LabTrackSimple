@@ -31,7 +31,6 @@ test("Phase 1 migrations define core tables", () => {
     "people",
     "lab_reports",
     "lab_artifacts",
-    "lab_results_staging",
     "lab_results",
   ];
 
@@ -58,11 +57,6 @@ test("Phase 1 constraints and indexes exist", () => {
     "lab_artifacts status constraint missing",
   );
   assert.ok(
-    sql.includes("check (status in ('needs_review','approved','rejected'))"),
-    "lab_results_staging status constraint missing",
-  );
-
-  assert.ok(
     sql.includes("household_members_unique_user"),
     "household_members unique constraint missing",
   );
@@ -79,8 +73,6 @@ test("Phase 1 constraints and indexes exist", () => {
     "lab_results_person_name_idx",
     "lab_results_report_idx",
     "lab_results_name_idx",
-    "lab_results_staging_run_idx",
-    "lab_results_staging_report_idx",
   ];
 
   for (const index of indexes) {
@@ -99,11 +91,13 @@ test("Phase 1 lab results no longer store household ids", () => {
     /alter table lab_results drop column (if exists )?household_id/.test(sql),
     "lab_results household_id drop missing",
   );
+});
+
+test("Phase 1 migrations drop lab_results_staging", () => {
+  const sql = normalize(readMigrations());
   assert.ok(
-    /alter table lab_results_staging drop column (if exists )?household_id/.test(
-      sql,
-    ),
-    "lab_results_staging household_id drop missing",
+    sql.includes("drop table if exists lab_results_staging"),
+    "lab_results_staging drop missing",
   );
 });
 
@@ -115,7 +109,6 @@ test("Phase 1 RLS is enabled with policies per table", () => {
     "people",
     "lab_reports",
     "lab_artifacts",
-    "lab_results_staging",
     "lab_results",
   ];
 
@@ -188,7 +181,6 @@ test("Phase 1 shared types align with schema", () => {
     "export type Person",
     "export type LabReport",
     "export type LabArtifact",
-    "export type LabResultStaging",
     "export type LabResult",
   ];
 

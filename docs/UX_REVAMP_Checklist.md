@@ -81,5 +81,5 @@ Replace the manual "Create Report" form.
 
 ## Non-UX / Coding Improvements
 - [ ] **Strict Types**: Ensure all generic `any` are removed from the new components.
-- [ ] **Error Boundaries**: Add `<ErrorBoundary>` around the main list views.
-- [ ] **Loading States**: Add proper Skeletons (using `components/ui/skeleton.tsx`) instead of just "Loading..." text.
+- [x] **Error Boundaries**: Add `<ErrorBoundary>` around the main list views.
+- [x] **Loading States**: Add proper Skeletons (using `components/ui/skeleton.tsx`) instead of just "Loading..." text.

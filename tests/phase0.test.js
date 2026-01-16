@@ -27,3 +27,9 @@ test("App Router special files exist", () => {
     assert.ok(existsSync(fullPath), `${filename} should exist`);
   }
 });
+
+test("Phase 0 package.json declares module type", () => {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+
+  assert.equal(pkg.type, "module");
+});

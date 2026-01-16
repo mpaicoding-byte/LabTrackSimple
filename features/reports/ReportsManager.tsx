@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { FileDropzone } from "./components/FileDropzone";
 
 type PersonRow = {
@@ -26,13 +27,6 @@ type ReportRow = {
   created_at: string;
 };
 
-type ManualDraft = {
-  name: string;
-  value: string;
-  unit: string;
-  details: string;
-};
-
 type ReportNotice = {
   tone: "success" | "error";
   message: string;
@@ -40,18 +34,11 @@ type ReportNotice = {
 
 // Helper for random IDs
 const buildArtifactId = () => crypto.randomUUID();
-const buildExtractionRunId = () => crypto.randomUUID();
 const BUCKET_ID = "lab-artifacts";
 
-const parseValueNum = (valueRaw: string) => {
-  const trimmed = valueRaw.trim();
-  if (!trimmed) return null;
-
-  const normalized = trimmed.replace(/,/g, "");
-  const parsed = Number.parseFloat(normalized);
-
-  return Number.isFinite(parsed) ? parsed : null;
-};
+const wrapWithBoundary = (content: React.ReactNode) => (
+  <ErrorBoundary>{content}</ErrorBoundary>
+);
 
 export const ReportsManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -68,8 +55,6 @@ export const ReportsManager = () => {
   const [draftFile, setDraftFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [extractingReports, setExtractingReports] = useState<Record<string, boolean>>({});
-  const [manualDrafts, setManualDrafts] = useState<Record<string, ManualDraft>>({});
-  const [manualSaving, setManualSaving] = useState<Record<string, boolean>>({});
   const [reportNotices, setReportNotices] = useState<Record<string, ReportNotice>>({});
 
   // Draft Form State
@@ -96,25 +81,6 @@ export const ReportsManager = () => {
   const setReportNotice = useCallback((reportId: string, notice: ReportNotice) => {
     setReportNotices((prev) => ({ ...prev, [reportId]: notice }));
   }, []);
-
-  const updateManualDraft = useCallback(
-    (reportId: string, draft: Partial<ManualDraft>) => {
-      setManualDrafts((prev) => {
-        const current = prev[reportId] ?? {
-          name: "",
-          value: "",
-          unit: "",
-          details: "",
-        };
-
-        return {
-          ...prev,
-          [reportId]: { ...current, ...draft },
-        };
-      });
-    },
-    [],
-  );
 
   // --- Data Loading ---
   const loadInitialData = useCallback(async () => {
@@ -258,6 +224,11 @@ export const ReportsManager = () => {
       // Success - Update Local State
       setReports(prev => [report as ReportRow, ...prev]);
       handleCancelDraft();
+      setReportNotice(report.id, {
+        tone: "success",
+        message: "Upload complete. Running extraction...",
+      });
+      void handleExtractReport(report.id);
 
     } catch (e) {
       console.error("Upload failed", e);
@@ -306,80 +277,11 @@ export const ReportsManager = () => {
     [supabase, setReportNotice, updateReportStatus],
   );
 
-  const handleManualInsert = useCallback(
-    async (reportId: string) => {
-      const draft = manualDrafts[reportId] ?? {
-        name: "",
-        value: "",
-        unit: "",
-        details: "",
-      };
-
-      if (!draft.name.trim() || !draft.value.trim()) return;
-
-      setManualSaving((prev) => ({ ...prev, [reportId]: true }));
-      try {
-        const extractionRunId = buildExtractionRunId();
-        const valueNum = parseValueNum(draft.value);
-
-        const { error } = await supabase.from("lab_results_staging").insert({
-          lab_report_id: reportId,
-          extraction_run_id: extractionRunId,
-          name_raw: draft.name.trim(),
-          value_raw: draft.value.trim(),
-          unit_raw: draft.unit.trim() || null,
-          value_num: valueNum,
-          details_raw: draft.details.trim() || null,
-        });
-
-        if (error) {
-          setReportNotice(reportId, {
-            tone: "error",
-            message: error.message ?? "Manual entry failed.",
-          });
-          return;
-        }
-
-        const { error: statusError } = await supabase
-          .from("lab_reports")
-          .update({ status: "review_required" })
-          .eq("id", reportId);
-
-        if (statusError) {
-          setReportNotice(reportId, {
-            tone: "error",
-            message: statusError.message ?? "Failed to update report status.",
-          });
-          return;
-        }
-
-        updateReportStatus(reportId, "review_required");
-        setManualDrafts((prev) => ({
-          ...prev,
-          [reportId]: { name: "", value: "", unit: "", details: "" },
-        }));
-        setReportNotice(reportId, {
-          tone: "success",
-          message: "Manual result added.",
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Manual entry failed.";
-        setReportNotice(reportId, {
-          tone: "error",
-          message,
-        });
-      } finally {
-        setManualSaving((prev) => ({ ...prev, [reportId]: false }));
-      }
-    },
-    [manualDrafts, supabase, setReportNotice, updateReportStatus],
-  );
-
   // --- Render Views ---
 
   // Login Gate
   if (!sessionLoading && !session) {
-    return (
+    return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <div className="bg-indigo-50 p-4 rounded-full">
@@ -396,7 +298,7 @@ export const ReportsManager = () => {
   }
 
   if (loading) {
-    return (
+    return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex h-[50vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-zinc-300" />
@@ -407,7 +309,7 @@ export const ReportsManager = () => {
 
   // View: Draft Mode (Overlay)
   if (draftFile) {
-    return (
+    return wrapWithBoundary(
       <DashboardLayout>
         <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <header className="mb-8">
@@ -485,7 +387,7 @@ export const ReportsManager = () => {
   }
 
   // View: Dashboard List
-  return (
+  return wrapWithBoundary(
     <DashboardLayout>
       <div className="flex flex-col gap-8 relative z-10">
 
@@ -516,18 +418,16 @@ export const ReportsManager = () => {
             </div>
           ) : (
             reports.map((report) => {
-              const manualDraft = manualDrafts[report.id] ?? {
-                name: "",
-                value: "",
-                unit: "",
-                details: "",
-              };
               const notice = reportNotices[report.id];
               const isExtracting = Boolean(extractingReports[report.id]);
-              const isManualSaving = Boolean(manualSaving[report.id]);
-              const isManualValid =
-                manualDraft.name.trim().length > 0 &&
-                manualDraft.value.trim().length > 0;
+              const statusLabel =
+                report.status === "review_required"
+                  ? "needs confirmation"
+                  : report.status === "final"
+                    ? "final"
+                    : report.status === "extraction_failed"
+                      ? "extraction failed"
+                      : "draft";
 
               return (
                 <Card key={report.id} className="group overflow-hidden bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:border-indigo-200 dark:hover:border-white/20 hover:scale-[1.01] transition-all duration-300 backdrop-blur-md shadow-sm dark:shadow-none">
@@ -559,7 +459,7 @@ export const ReportsManager = () => {
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                      {role === "owner" && (
+                      {role === "owner" && report.status === "extraction_failed" && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -568,7 +468,17 @@ export const ReportsManager = () => {
                           className="border-indigo-200 dark:border-white/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-white/10"
                         >
                           {isExtracting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Extract
+                          Retry extraction
+                        </Button>
+                      )}
+                      {role === "owner" && report.status === "review_required" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-amber-200 text-amber-600 hover:bg-amber-50"
+                        >
+                          <a href={`/reports/${report.id}/review`}>Review</a>
                         </Button>
                       )}
                       <Badge className={`
@@ -578,79 +488,10 @@ export const ReportsManager = () => {
                             report.status === 'extraction_failed' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-500/10 text-zinc-400'
                         }
                       `}>
-                        {report.status.replace('_', ' ')}
+                        {statusLabel}
                       </Badge>
                     </div>
                   </div>
-
-                  {role === "owner" && (
-                    <div className="border-t border-zinc-200/70 dark:border-white/10 px-5 py-4">
-                      <div className="grid gap-4 md:grid-cols-4">
-                        <div className="space-y-2">
-                          <label htmlFor={`manual-name-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Result name
-                          </label>
-                          <Input
-                            id={`manual-name-${report.id}`}
-                            aria-label="Result name"
-                            value={manualDraft.name}
-                            onChange={(e) => updateManualDraft(report.id, { name: e.target.value })}
-                            placeholder="e.g., Glucose"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor={`manual-value-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Result value
-                          </label>
-                          <Input
-                            id={`manual-value-${report.id}`}
-                            aria-label="Result value"
-                            value={manualDraft.value}
-                            onChange={(e) => updateManualDraft(report.id, { value: e.target.value })}
-                            placeholder="e.g., 92"
-                            inputMode="decimal"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor={`manual-unit-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Result unit
-                          </label>
-                          <Input
-                            id={`manual-unit-${report.id}`}
-                            aria-label="Result unit"
-                            value={manualDraft.unit}
-                            onChange={(e) => updateManualDraft(report.id, { unit: e.target.value })}
-                            placeholder="e.g., mg/dL"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor={`manual-details-${report.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Result details
-                          </label>
-                          <Input
-                            id={`manual-details-${report.id}`}
-                            aria-label="Result details"
-                            value={manualDraft.details}
-                            onChange={(e) => updateManualDraft(report.id, { details: e.target.value })}
-                            placeholder="Optional notes"
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleManualInsert(report.id)}
-                          disabled={!isManualValid || isManualSaving}
-                          className="bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
-                        >
-                          {isManualSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Add result
-                        </Button>
-                        Manual entries create staging rows for review.
-                      </div>
-                    </div>
-                  )}
                 </Card>
               );
             })

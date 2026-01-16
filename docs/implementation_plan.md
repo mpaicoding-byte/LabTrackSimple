@@ -81,7 +81,7 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 - [x] Signed URL viewing for artifacts
 - [x] Artifact status updates (`pending` → `ready`/`failed`)
 - [x] Storage policy/RLS for bucket access documented
-- [x] Testing uses local Supabase; AGENTS guidance avoids online login
+- [x] Testing uses Supabase MCP for DB verification; AGENTS guidance avoids web auth
 
 ### Outputs
 - Report creation page
@@ -126,25 +126,28 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 ### Done When
 - A real artifact produces non-empty, well-formed staging rows via the adapter
 
-## Phase 5 — Review + Commit
+## Phase 5 — Review + Confirm (Simple Flow)
+
+Status: In progress (see `docs/current specs/simple-review-flow/`).
 
 ### Checklist
-- [ ] Review grid with editable fields
-- [ ] `details_raw` editable in review grid
-- [ ] Approve/reject per-row and bulk actions
-- [ ] Edge Function `commit_results` implemented
-- [ ] Approved rows copied to `lab_results`
-- [ ] Previous `lab_results` soft-deleted on commit
-- [ ] Report status set to `final`
-- [ ] Re-extraction keeps previous final results until commit
-- [ ] Inline artifact preview in review UI
+- [x] Review grid with editable fields (lab_results)
+- [x] `details_raw` editable in review grid
+- [x] "Confirm & Save" and "Not correct" actions (no approve/reject/bulk)
+- [x] Inline artifact preview in review UI
+- [x] Edge Function `confirm_report_results` implemented
+- [x] Confirm sets report `final` + run `confirmed`
+- [x] Re-extraction keeps previous final results until confirm
+- [x] Remove legacy `commit_results` flow and tests
+- [x] E2E: upload -> auto extract -> confirm -> final
+- [x] E2E: not correct keeps report in review_required
 
 ### Outputs
-- Review UI page
-- Edge Function source in `supabase/functions/commit_results/`
+- Review UI page (simple confirmation)
+- Edge Function source in `supabase/functions/confirm_report_results/`
 
 ### Done When
-- Approved staging rows appear in `lab_results` after commit
+- Current extraction run results marked final and report status is `final`
 
 ## Phase 6 — Trends + Search
 

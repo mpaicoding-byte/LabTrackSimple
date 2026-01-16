@@ -28,14 +28,16 @@ npm run test:e2e
 We follow a test pyramid (unit → component → integration → E2E):
 - Unit: `node --test` for pure logic.
 - Component: React Testing Library + `vitest` (jsdom).
-- Integration: local Supabase (`npx supabase start`).
-- E2E: Playwright against `npm run dev` and local Supabase.
+- Integration: Supabase MCP for DB setup/verification against the configured project.
+- E2E: Playwright against `npm run dev`, then verify DB state via Supabase MCP.
 
 UI changes also require MCP UI verification.
 
 E2E tests load `.env.e2e` (fallback to `.env`) for `E2E_EMAIL` and
 `E2E_PASSWORD`. Set `E2E_BASE_URL` if you are targeting a non-default server
 URL.
+Provide `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e` to enable admin setup in
+review/commit E2E flows.
 Set `PW_USE_CHROME=true` to use the system Chrome channel instead of the
 bundled Chromium.
 
@@ -84,7 +86,8 @@ by the client SDK. Keep any server-only secrets in `.env.local` without the
 
 ## Supabase Migrations & Secrets
 
-Migrations live in `supabase/migrations/` and are pushed via the helper script.
+Migrations live in `supabase/migrations/` and should be applied via Supabase MCP
+(for example `apply_migration` or `execute_sql`).
 
 Prereqs (set in your shell, not committed):
 - `SUPABASE_ACCESS_TOKEN` (starts with `sbp_...`)
@@ -94,7 +97,7 @@ Prereqs (set in your shell, not committed):
 Secrets for Edge Functions are kept in `.env.supabase` (not committed). A
 template is provided at `.env.supabase.example`.
 
-### Push helper
+### Push helper (secrets + fallback)
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=sbp_...
@@ -106,6 +109,9 @@ The script:
 - links the project
 - runs `db push` (dry-run first, then apply)
 - pushes secrets from `.env.supabase`
+
+Prefer Supabase MCP for schema changes; use this script only when MCP is
+unavailable or when you need to push secrets.
 
 You can override the secrets file with:
 

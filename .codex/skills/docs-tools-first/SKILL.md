@@ -15,6 +15,10 @@ Always consult official documentation before implementation or wiring code. Pref
 
 Clarify the library, framework, API, or integration. If the version or provider is ambiguous, ask the user before proceeding.
 
+### 1.5) Update checklists immediately
+
+If you complete any checklist item (specs, plans, phase checklists), mark it done right away before moving to the next step. Do not batch updates at the end.
+
 ### 2) Read docs with Context7 (primary)
 
 Use Context7 to resolve the library ID and query the exact topic needed. Capture recommended patterns, required configuration, and warnings.
@@ -38,6 +42,7 @@ Only after docs are read and summarized, implement the minimal code required by 
 - Prefer official sources and primary documentation over blogs.
 - Keep Context7 and Tavily calls focused to stay within tool limits.
 - When reviewing or editing docs, align terminology and paths (schema fields, storage paths, onboarding requirements) across README, specs, and checklists.
+- When a checklist item is completed, update the checklist immediately (no batching).
 
 ## Document Generation (Repo Convention)
 
@@ -47,7 +52,7 @@ Use this when the user asks for specs, plans, or checklists.
 - For new features, generate this set by default:
   - `*_spec.md` (problem, goals, non-goals, flow, data, UX, validation, edge cases)
   - `*_user_stories_acceptance_criteria.md`
-  - `*_checklist.md` (Red/Green/Verify)
+  - `*_checklist.md` (Red/Green/Verify) and very detailed checklist with all options, so user can validate and verify before you implement.
 - Keep content short, explicit, and testable; avoid duplicating what already exists.
 - If a spec replaces an older one, move the old doc into `docs/archived specs/(feature-name)/`.
 - Create multiple feature folders if the implementation is big.

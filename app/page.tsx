@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/features/auth/SessionProvider";
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 import {
@@ -172,7 +173,11 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-display font-bold text-zinc-900 dark:text-white">
-                {loading ? "..." : stats.totalReports}
+                {loading ? (
+                  <Skeleton data-testid="stats-skeleton" className="h-8 w-16" />
+                ) : (
+                  stats.totalReports
+                )}
               </div>
               <p className="text-xs text-zinc-500 mt-1">All time lab reports</p>
             </CardContent>
@@ -188,7 +193,11 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-display font-bold text-zinc-900 dark:text-white">
-                {loading ? "..." : stats.totalPeople}
+                {loading ? (
+                  <Skeleton data-testid="stats-skeleton" className="h-8 w-16" />
+                ) : (
+                  stats.totalPeople
+                )}
               </div>
               <p className="text-xs text-zinc-500 mt-1">People in your household</p>
             </CardContent>
@@ -204,7 +213,11 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-display font-bold text-zinc-900 dark:text-white">
-                {loading ? "..." : stats.recentReports}
+                {loading ? (
+                  <Skeleton data-testid="stats-skeleton" className="h-8 w-12" />
+                ) : (
+                  stats.recentReports
+                )}
               </div>
               <p className="text-xs text-zinc-500 mt-1">Added in last 30 days</p>
             </CardContent>
@@ -289,9 +302,10 @@ export default function DashboardPage() {
               {loading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div
+                    <Skeleton
                       key={i}
-                      className="h-16 animate-pulse rounded-xl bg-zinc-100 dark:bg-white/5"
+                      data-testid="recent-skeleton"
+                      className="h-16 rounded-xl bg-zinc-100 dark:bg-white/5"
                     />
                   ))}
                 </div>

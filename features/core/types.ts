@@ -41,6 +41,10 @@ export type LabReport = {
   report_date: string;
   source: string | null;
   status: LabReportStatus;
+  current_extraction_run_id: string | null;
+  final_extraction_run_id: string | null;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
   notes: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -61,23 +65,6 @@ export type LabArtifact = {
   created_at: string;
 };
 
-export type LabResultStagingStatus = "needs_review" | "approved" | "rejected";
-
-export type LabResultStaging = {
-  id: string;
-  lab_report_id: string;
-  artifact_id: string | null;
-  extraction_run_id: string;
-  name_raw: string;
-  value_raw: string;
-  unit_raw: string | null;
-  value_num: number | null;
-  details_raw: string | null;
-  status: LabResultStagingStatus;
-  created_at: string;
-  deleted_at: string | null;
-};
-
 export type LabResult = {
   id: string;
   lab_report_id: string;
@@ -88,6 +75,10 @@ export type LabResult = {
   unit_raw: string | null;
   value_num: number | null;
   details_raw: string | null;
+  is_final: boolean;
+  is_active: boolean;
+  edited_at: string | null;
+  edited_by: string | null;
   created_at: string;
   deleted_at: string | null;
 };

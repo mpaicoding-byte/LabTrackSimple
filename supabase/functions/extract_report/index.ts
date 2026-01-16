@@ -36,8 +36,31 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   const extractionRunId = crypto.randomUUID();
+  const now = new Date().toISOString();
 
   try {
+    const { data: report, error: reportError } = await supabase
+      .from("lab_reports")
+      .select("id, person_id")
+      .eq("id", payload.lab_report_id)
+      .maybeSingle();
+
+    if (reportError) throw reportError;
+    if (!report) {
+      return jsonResponse({ error: "Report not found." }, 404);
+    }
+
+    const { error: runInsertError } = await supabase
+      .from("extraction_runs")
+      .insert({
+        id: extractionRunId,
+        lab_report_id: report.id,
+        status: "running",
+        started_at: now,
+      });
+
+    if (runInsertError) throw runInsertError;
+
     const { data: artifacts, error: artifactsError } = await supabase
       .from("lab_artifacts")
       .select("id, object_path")
@@ -49,7 +72,7 @@ Deno.serve(async (req) => {
 
     const rows = (artifacts ?? []).map((artifact, index) => ({
       lab_report_id: payload.lab_report_id,
-      artifact_id: artifact.id,
+      person_id: report.person_id,
       extraction_run_id: extractionRunId,
       name_raw: `Artifact ${index + 1}`,
       value_raw: "Review artifact",
@@ -60,15 +83,25 @@ Deno.serve(async (req) => {
 
     if (rows.length > 0) {
       const { error: insertError } = await supabase
-        .from("lab_results_staging")
+        .from("lab_results")
         .insert(rows);
 
       if (insertError) throw insertError;
     }
 
+    const { error: runUpdateError } = await supabase
+      .from("extraction_runs")
+      .update({ status: "ready", completed_at: now })
+      .eq("id", extractionRunId);
+
+    if (runUpdateError) throw runUpdateError;
+
     const { error: updateError } = await supabase
       .from("lab_reports")
-      .update({ status: "review_required" })
+      .update({
+        status: "review_required",
+        current_extraction_run_id: extractionRunId,
+      })
       .eq("id", payload.lab_report_id);
 
     if (updateError) throw updateError;
@@ -84,6 +117,11 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Extraction failed.";
+
+    await supabase
+      .from("extraction_runs")
+      .update({ status: "failed", completed_at: now, error: message })
+      .eq("id", extractionRunId);
 
     await supabase
       .from("lab_reports")

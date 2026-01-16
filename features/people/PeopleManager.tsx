@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 type PersonRow = {
   id: string;
@@ -29,6 +30,10 @@ const formatGender = (value: string | null) => {
   if (!value) return "Unknown";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
+
+const wrapWithBoundary = (content: React.ReactNode) => (
+  <ErrorBoundary>{content}</ErrorBoundary>
+);
 
 export const PeopleManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -153,7 +158,7 @@ export const PeopleManager = () => {
   };
 
   if (!sessionLoading && !session) {
-    return (
+    return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <div className="bg-indigo-50 p-4 rounded-full">
@@ -170,7 +175,7 @@ export const PeopleManager = () => {
   }
 
   if (loading && people.length === 0) {
-    return (
+    return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex h-[50vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-zinc-300" />
@@ -181,7 +186,7 @@ export const PeopleManager = () => {
 
   // Create Mode
   if (isCreating) {
-    return (
+    return wrapWithBoundary(
       <DashboardLayout>
         <div className="mx-auto max-w-2xl animate-in fade-in zoom-in-95 duration-300">
           <Card className="glass dark:bg-white/5 overflow-hidden border-zinc-200 dark:border-white/10 shadow-2xl">
@@ -244,7 +249,7 @@ export const PeopleManager = () => {
   }
 
   // List Mode
-  return (
+  return wrapWithBoundary(
     <DashboardLayout>
       <div className="flex flex-col gap-8 relative z-10">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">

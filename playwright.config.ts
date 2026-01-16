@@ -9,6 +9,27 @@ dotenv.config({ path: envPath });
 const authFile = path.resolve(".playwright", ".auth", "owner.json");
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3000";
 const useChromeChannel = process.env.PW_USE_CHROME === "true";
+const e2eBrowser = process.env.E2E_BROWSER ?? "chromium";
+
+const projectByBrowser = {
+  chromium: {
+    name: "chromium",
+    use: { ...devices["Desktop Chrome"] },
+  },
+  firefox: {
+    name: "firefox",
+    use: { ...devices["Desktop Firefox"] },
+  },
+  webkit: {
+    name: "webkit",
+    use: { ...devices["Desktop Safari"] },
+  },
+} as const;
+
+const projects =
+  e2eBrowser === "all"
+    ? Object.values(projectByBrowser)
+    : [projectByBrowser[e2eBrowser as keyof typeof projectByBrowser] ?? projectByBrowser.chromium];
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -34,10 +55,5 @@ export default defineConfig({
         reuseExistingServer: true,
         timeout: 120_000,
       },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
+  projects,
 });

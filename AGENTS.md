@@ -53,10 +53,10 @@ to the code and add end-to-end coverage for critical flows.
   `vitest` with minimal mocking. Colocate near the code (`features/*/__tests__`).
 - Component tests: UI logic in isolation (AuthScreen, PeopleManager). Use
   React Testing Library + `vitest` + `jsdom`. Mock Supabase via adapters.
-- Integration tests: Supabase + RLS + DB triggers. Use local Supabase
-  (`npx supabase start`) and run tests against the local stack.
+- Integration tests: Supabase + RLS + DB triggers. Use Supabase MCP for DB
+  setup/verification and run tests against the configured Supabase project.
 - E2E tests: Full user journeys (signup → sign-in → people management). Use
-  Playwright against `npm run dev` and local Supabase.
+  Playwright against `npm run dev`, then verify DB state via Supabase MCP.
 
 ### Requirements
 - Any auth/people/report feature change must include at least one E2E flow test.
@@ -75,11 +75,19 @@ to the code and add end-to-end coverage for critical flows.
 -  your next implementation plan & checklist is in implementation_plan.md divided by phases. always update (mark as done) the checklist item in the phase that you are working whenever, the item is completed don't wait for the whole phase to be complete just mark the item that is completed.
 - Check if the app is already running first. if not then run it to test.
 - Use the chrome dev tools mcp to perform the UI testing.
-- Use NPM to access supabase cli commands.
-- Start local Supabase with `npx supabase start` (if it fails to connect to Docker, ensure Docker Desktop is running and retry).
+- Use Supabase MCP for database queries, migrations, and verification.
+- Use NPM for Supabase CLI commands only when MCP is unavailable or explicitly requested.
+- Do not start local Supabase/Docker unless explicitly requested.
 - If you add more function secrets, update .env.supabase and rerun supabase_push.sh for supabase update.
-- Use local Supabase for testing/verification; avoid online Supabase login unless explicitly requested.
+- Use Supabase MCP (access token) for testing/verification; avoid web auth unless explicitly requested.
 - After checklist item completion, update the readme if needed accordingly for documenation.
 - Use --isolated to run multiple browser instances for chrome dev tools.
 - You perform the migrations in db if user approves.
 - Don't ask user to access any UI to perform things, take permission from the user and do that by userself using the chrome dev tools mcp
+
+## Execution learnings (avoid repeats)
+- Use the external Supabase project only; do not point `.env.local` at local Supabase.
+- E2E review/commit specs require `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e` or they skip admin setup.
+- Use elevated permissions for dev server + Playwright otherwise auth requests fail.
+- Scope household role lookups by the report household to avoid ambiguous memberships.
+- For edge functions that write to Postgres, authenticate the user but use a service-role client for DB writes to avoid RLS insert failures.
