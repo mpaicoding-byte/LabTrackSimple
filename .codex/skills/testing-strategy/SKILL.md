@@ -21,7 +21,7 @@ Use this skill when running or troubleshooting tests in this repo. Tests must be
 - **E2E entry command pattern**
   - `E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e -- <spec>`
 - **Review/commit setup**
-  - Set `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e` so admin seeding is not skipped.
+- Set `SUPABASE_SERVICE_ROLE_KEY` in `.env` so admin seeding is not skipped.
   - Wait for sign-in redirect before navigating to protected review URLs.
 
 ## UI Verification (Mandatory)

@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 const requireCredentials = () => {
   if (!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD) {
-    test.skip(true, "Set E2E_EMAIL and E2E_PASSWORD in .env.e2e.");
+    test.skip(true, "Set E2E_EMAIL and E2E_PASSWORD in .env.");
   }
 };
 

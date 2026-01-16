@@ -20,6 +20,6 @@
 - [x] Update implementation plan + README.
 
 ## Comments
-- E2E ran against local Supabase using `.env.e2e` credentials.
+- E2E ran against local Supabase using `.env` credentials.
 - UI verification via Chrome DevTools MCP: signed in, created a report, uploaded an artifact, and opened the signed URL.
 - Pending: run `./scripts/supabase_push.sh` to apply storage bucket/policy migration.

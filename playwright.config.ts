@@ -1,10 +1,8 @@
-import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
 
-const envPath = fs.existsSync(".env.e2e") ? ".env.e2e" : ".env";
-dotenv.config({ path: envPath });
+dotenv.config({ path: ".env" });
 
 const authFile = path.resolve(".playwright", ".auth", "owner.json");
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3000";

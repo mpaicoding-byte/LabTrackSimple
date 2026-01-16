@@ -87,7 +87,7 @@ to the code and add end-to-end coverage for critical flows.
 
 ## Execution learnings (avoid repeats)
 - Use the external Supabase project only; do not point `.env.local` at local Supabase.
-- E2E review/commit specs require `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e` or they skip admin setup.
+- E2E review/commit specs require `SUPABASE_SERVICE_ROLE_KEY` in `.env` or they skip admin setup.
 - Use elevated permissions for dev server + Playwright otherwise auth requests fail.
 - Scope household role lookups by the report household to avoid ambiguous memberships.
 - For edge functions that write to Postgres, authenticate the user but use a service-role client for DB writes to avoid RLS insert failures.

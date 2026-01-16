@@ -33,10 +33,9 @@ We follow a test pyramid (unit → component → integration → E2E):
 
 UI changes also require MCP UI verification.
 
-E2E tests load `.env.e2e` (fallback to `.env`) for `E2E_EMAIL` and
-`E2E_PASSWORD`. Set `E2E_BASE_URL` if you are targeting a non-default server
-URL.
-Provide `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e` to enable admin setup in
+E2E tests load `.env` for `E2E_EMAIL` and `E2E_PASSWORD`. Set `E2E_BASE_URL` if
+you are targeting a non-default server URL.
+Provide `SUPABASE_SERVICE_ROLE_KEY` in `.env` to enable admin setup in
 review/commit E2E flows.
 Set `PW_USE_CHROME=true` to use the system Chrome channel instead of the
 bundled Chromium.

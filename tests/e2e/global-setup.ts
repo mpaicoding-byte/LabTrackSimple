@@ -9,7 +9,7 @@ const password = process.env.E2E_PASSWORD;
 
 const ensureCredentials = () => {
   if (!email || !password) {
-    throw new Error("Set E2E_EMAIL and E2E_PASSWORD in .env.e2e before running E2E tests.");
+    throw new Error("Set E2E_EMAIL and E2E_PASSWORD in .env before running E2E tests.");
   }
 };
 
