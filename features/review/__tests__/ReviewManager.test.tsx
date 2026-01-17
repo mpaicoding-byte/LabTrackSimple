@@ -36,6 +36,7 @@ const reportRow = {
   report_date: "2024-01-01",
   status: "review_required",
   current_extraction_run_id: "run-1",
+  deleted_at: null,
 };
 
 const personRow = {
@@ -46,15 +47,20 @@ const personRow = {
 const buildSupabaseMock = ({
   role = "owner",
   reportStatus = "review_required",
+  reportDeletedAt = null,
   runRow = { id: "run-1", status: "ready" },
   resultRows = [],
   artifactRow = null,
 } = {}) => {
-  const updateMock = vi.fn(() => ({
+  const updateMock = vi.fn<
+    (payload: Record<string, unknown>) => {
+      eq: () => Promise<{ data: null; error: null }>;
+    }
+  >(() => ({
     eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
   }));
 
-  const insertMock = vi.fn((_payload: unknown) => ({
+  const insertMock = vi.fn(() => ({
     select: vi.fn(() => ({
       data: [
         {
@@ -103,7 +109,11 @@ const buildSupabaseMock = ({
 
       if (table === "lab_reports") {
         return {
-          ...buildQuery({ ...reportRow, status: reportStatus }),
+          ...buildQuery({
+            ...reportRow,
+            status: reportStatus,
+            deleted_at: reportDeletedAt,
+          }),
           update: updateMock,
         };
       }
@@ -297,6 +307,14 @@ test("preview button links to the signed URL when available", async () => {
     expect(supabaseMock._mocks.createSignedUrlMock).toHaveBeenCalled();
   });
   expect(previewLink).toHaveAttribute("href", "https://example.com/artifact.pdf");
+});
+
+test("shows an error when the report is deleted", async () => {
+  renderReview({
+    reportDeletedAt: "2024-02-01T00:00:00Z",
+  });
+
+  expect(await screen.findByText(/report not found/i)).toBeVisible();
 });
 
 test("empty state messaging when no results exist", async () => {

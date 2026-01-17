@@ -71,11 +71,6 @@ test.describe("report review + confirm", () => {
     await page.getByLabel(/report date/i).fill("2024-02-15");
     await page.getByRole("button", { name: /save report/i }).click();
 
-    const reportCard = page
-      .getByRole("heading", { name: new RegExp(newName, "i") })
-      .first()
-      .locator("xpath=ancestor::div[contains(@class,'group')][1]");
-
     const { data: person } = await admin
       .from("people")
       .select("id")
@@ -120,9 +115,16 @@ test.describe("report review + confirm", () => {
       { timeout: 30_000 },
     ).not.toBeNull();
 
+    const reportSnapshot = report as {
+      id: string;
+      person_id: string;
+      status: string;
+      current_extraction_run_id: string | null;
+    } | null;
+
     const { error: preexistingError } = await admin.from("lab_results").insert({
-      lab_report_id: report?.id,
-      person_id: report?.person_id,
+      lab_report_id: reportSnapshot?.id,
+      person_id: reportSnapshot?.person_id,
       extraction_run_id: preRunId,
       name_raw: "Preexisting",
       value_raw: "1",
@@ -139,7 +141,7 @@ test.describe("report review + confirm", () => {
       const { data } = await admin
         .from("lab_results")
         .select("id")
-        .eq("extraction_run_id", report?.current_extraction_run_id ?? "")
+        .eq("extraction_run_id", reportSnapshot?.current_extraction_run_id ?? "")
         .limit(1);
       return data?.length ?? 0;
       },
@@ -156,7 +158,7 @@ test.describe("report review + confirm", () => {
     const { data: beforeCommit } = await admin
       .from("lab_results")
       .select("id, is_active")
-      .eq("lab_report_id", report?.id ?? "")
+      .eq("lab_report_id", reportSnapshot?.id ?? "")
       .eq("extraction_run_id", preRunId)
       .maybeSingle();
 
@@ -192,13 +194,13 @@ test.describe("report review + confirm", () => {
     const { data: afterConfirm } = await admin
       .from("lab_results")
       .select("id, name_raw, is_active, is_final, extraction_run_id")
-      .eq("lab_report_id", report?.id ?? "");
+      .eq("lab_report_id", reportSnapshot?.id ?? "");
 
     const previousRunRows = (afterConfirm ?? []).filter(
       (row) => row.extraction_run_id === preRunId,
     );
     const currentRunRows = (afterConfirm ?? []).filter(
-      (row) => row.extraction_run_id === report?.current_extraction_run_id,
+      (row) => row.extraction_run_id === reportSnapshot?.current_extraction_run_id,
     );
 
     expect(previousRunRows.every((row) => row.is_active === false)).toBeTruthy();
@@ -208,16 +210,16 @@ test.describe("report review + confirm", () => {
     const { data: finalReport } = await admin
       .from("lab_reports")
       .select("status, final_extraction_run_id")
-      .eq("id", report?.id ?? "")
+      .eq("id", reportSnapshot?.id ?? "")
       .maybeSingle();
 
     expect(finalReport?.status).toBe("final");
-    expect(finalReport?.final_extraction_run_id).toBe(report?.current_extraction_run_id ?? "");
+    expect(finalReport?.final_extraction_run_id).toBe(reportSnapshot?.current_extraction_run_id ?? "");
 
     const { data: finalRun } = await admin
       .from("extraction_runs")
       .select("status")
-      .eq("id", report?.current_extraction_run_id ?? "")
+      .eq("id", reportSnapshot?.current_extraction_run_id ?? "")
       .maybeSingle();
     expect(finalRun?.status).toBe("confirmed");
   });

@@ -1,23 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { ensureUserProfile } from "./ensureUserProfile";
 
 const requireCredentials = () => {
   if (!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD) {
     test.skip(true, "Set E2E_EMAIL and E2E_PASSWORD in .env.");
   }
-};
-
-const signIn = async (page: Page) => {
-  const email = process.env.E2E_EMAIL ?? "";
-  const password = process.env.E2E_PASSWORD ?? "";
-
-  await page.goto("/auth");
-  await page.getByRole("button", { name: "Sign in" }).first().click();
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.locator("form").getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("Signed in as")).toBeVisible();
 };
 
 const getAdminClient = () => {

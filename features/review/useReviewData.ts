@@ -15,6 +15,7 @@ type ReportRow = {
   report_date: string;
   status: "draft" | "review_required" | "final" | "extraction_failed";
   current_extraction_run_id: string | null;
+  deleted_at: string | null;
 };
 
 export const useReviewData = (reportId?: string) => {
@@ -45,12 +46,18 @@ export const useReviewData = (reportId?: string) => {
     try {
       const { data: reportData, error: reportError } = await supabase
         .from("lab_reports")
-        .select("id, household_id, person_id, report_date, status, current_extraction_run_id")
+        .select("id, household_id, person_id, report_date, status, current_extraction_run_id, deleted_at")
         .eq("id", reportId)
         .maybeSingle();
 
       if (reportError || !reportData) {
         setError(reportError?.message ?? "Report not found.");
+        setLoading(false);
+        return;
+      }
+
+      if (reportData.deleted_at) {
+        setError("Report not found.");
         setLoading(false);
         return;
       }

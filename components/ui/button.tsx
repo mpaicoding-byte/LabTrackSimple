@@ -27,14 +27,17 @@ type SlotProps = React.HTMLAttributes<HTMLElement> & {
     children?: React.ReactNode
 }
 
+type SlottableProps = React.HTMLAttributes<HTMLElement> & React.RefAttributes<HTMLElement>
+
 const Slot = React.forwardRef<HTMLElement, SlotProps>(({ children, className, ...props }, ref) => {
     if (!React.isValidElement(children)) {
         return null
     }
 
-    return React.cloneElement(children as React.ReactElement<any>, {
+    const child = children as React.ReactElement<SlottableProps>
+    return React.cloneElement(child, {
         ...props,
-        className: cn((children.props as any).className, className),
+        className: cn(child.props.className, className),
         ref,
     })
 })

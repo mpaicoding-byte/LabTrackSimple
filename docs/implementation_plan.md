@@ -82,6 +82,7 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 - [x] Artifact status updates (`pending` → `ready`/`failed`)
 - [x] Storage policy/RLS for bucket access documented
 - [x] Testing uses Supabase MCP for DB verification; AGENTS guidance avoids web auth
+- [x] Owner can soft delete reports (sets `deleted_at` and hides in lists)
 
 ### Outputs
 - Report creation page
@@ -194,3 +195,8 @@ Status: In progress (see `docs/current specs/simple-review-flow/`).
 
 ### Done When
 - All MVP acceptance criteria from the Product Design Document are satisfied
+
+## Backlog
+
+### Cleanup
+- [ ] Background job to permanently delete soft-deleted reports, artifacts, and results.

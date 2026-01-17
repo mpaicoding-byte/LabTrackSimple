@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "typecheck:functions": "deno check --config supabase/functions/deno.json --lock supabase/functions/deno.lock supabase/functions/confirm_report_results/index.ts supabase/functions/extract_report/index.ts",
     "test": "node --test",
     "test:unit": "vitest",
     "test:e2e": "node scripts/run_e2e.mjs"

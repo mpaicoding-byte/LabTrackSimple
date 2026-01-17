@@ -52,7 +52,9 @@ const insertReportMock = vi.fn((payload: unknown) => {
   };
 });
 
-const insertArtifactMock = vi.fn((_payload: unknown) => ({ error: null }));
+const insertArtifactMock = vi.fn<
+  (payload: Record<string, unknown>) => { error: null }
+>(() => ({ error: null }));
 
 const updateArtifactMock = vi.fn(() => ({
   eq: vi.fn().mockResolvedValue({ error: null }),
@@ -68,7 +70,13 @@ const updateReportMock = vi.fn(() => ({
 
 const rpcMock = vi.fn().mockResolvedValue({ data: true, error: null });
 
-const insertRunMock = vi.fn((_payload: unknown) => ({
+const insertRunMock = vi.fn<
+  (payload: Record<string, unknown>) => {
+    select: () => {
+      single: () => Promise<{ data: { id: string; status: string }; error: null }>;
+    };
+  }
+>(() => ({
   select: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({
     data: { id: "run-1", status: "ready" },

@@ -18,10 +18,15 @@ Common commands:
 
 ```bash
 npm run lint
+npm run typecheck
+npm run typecheck:functions
 npm run test
 npm run test:unit
 npm run test:e2e
 ```
+
+`npm run typecheck:functions` uses Deno to validate Edge Functions. Install
+Deno if you plan to run that script.
 
 ## Testing
 
