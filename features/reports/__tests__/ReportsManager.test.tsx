@@ -66,6 +66,8 @@ const updateReportMock = vi.fn(() => ({
   eq: vi.fn().mockResolvedValue({ error: null }),
 }));
 
+const rpcMock = vi.fn().mockResolvedValue({ data: true, error: null });
+
 const insertRunMock = vi.fn((_payload: unknown) => ({
   select: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({
@@ -151,6 +153,7 @@ const supabaseMock = {
   functions: {
     invoke: invokeMock,
   },
+  rpc: rpcMock,
 };
 
 vi.mock("@/features/core/supabaseClient", () => ({
@@ -267,6 +270,85 @@ test("owners can save a report from a file, upload its artifact, and auto-extrac
   });
 
   vi.unstubAllGlobals();
+});
+
+test("shows an inline error when the report cannot be created", async () => {
+  insertReportMock.mockImplementationOnce((payload: unknown) => {
+    const row = Array.isArray(payload) ? payload[0] : payload;
+    return {
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { ...(row as object) },
+        error: { message: "Insert failed" },
+      }),
+    };
+  });
+
+  render(<ReportsManager />);
+
+  const fileInput = await screen.findByLabelText(/report file/i);
+  const file = new File(["dummy"], "report.pdf", {
+    type: "application/pdf",
+  });
+
+  await userEvent.upload(fileInput, file);
+  await screen.findByRole("heading", { name: /new report from file/i });
+  await userEvent.click(
+    await screen.findByRole("button", { name: /ada lovelace/i }),
+  );
+
+  const dateInput = screen.getByLabelText(/report date/i);
+  await userEvent.clear(dateInput);
+  await userEvent.type(dateInput, "2024-01-10");
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /save report/i }),
+  );
+
+  expect(await screen.findByText(/insert failed/i)).toBeInTheDocument();
+});
+
+test("owners can soft delete a report from the list", async () => {
+  reportsData = [
+    {
+      id: "report-1",
+      person_id: "person-1",
+      report_date: "2024-02-01",
+      source: "Uploaded via Web",
+      status: "draft",
+      created_at: "2024-02-01T00:00:00Z",
+    },
+  ];
+
+  render(<ReportsManager />);
+
+  const reportHeading = await screen.findByRole("heading", {
+    name: /ada lovelace/i,
+  });
+  const reportCard = reportHeading.closest(".group");
+  expect(reportCard).not.toBeNull();
+
+  await userEvent.click(
+    within(reportCard as HTMLElement).getByRole("button", { name: /delete/i }),
+  );
+
+  expect(await screen.findByRole("heading", { name: /delete report/i })).toBeVisible();
+  await userEvent.click(
+    screen.getByRole("button", { name: /delete report/i }),
+  );
+
+  await waitFor(() => {
+    expect(rpcMock).toHaveBeenCalledWith("soft_delete_report", {
+      target_report_id: "report-1",
+    });
+  });
+
+  await waitFor(() => {
+    expect(
+      screen.queryByRole("heading", { name: /ada lovelace/i }),
+    ).toBeNull();
+  });
+
 });
 
 test("shows view for final reports and review for reports needing review", async () => {

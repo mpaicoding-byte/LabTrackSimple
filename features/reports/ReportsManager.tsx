@@ -36,6 +36,14 @@ type ReportNotice = {
 // Helper for random IDs
 const buildArtifactId = () => crypto.randomUUID();
 const BUCKET_ID = "lab-artifacts";
+const resolveErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error && "message" in error) {
+    const message = (error as { message?: string }).message;
+    if (message) return message;
+  }
+  return fallback;
+};
 
 const wrapWithBoundary = (content: React.ReactNode) => (
   <ErrorBoundary>{content}</ErrorBoundary>
@@ -55,9 +63,13 @@ export const ReportsManager = () => {
 
   // UI State
   const [draftFile, setDraftFile] = useState<File | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [extractingReports, setExtractingReports] = useState<Record<string, boolean>>({});
   const [reportNotices, setReportNotices] = useState<Record<string, ReportNotice>>({});
+  const [reportToDelete, setReportToDelete] = useState<ReportRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
 
   // Draft Form State
   const [draftPersonId, setDraftPersonId] = useState("");
@@ -153,6 +165,7 @@ export const ReportsManager = () => {
 
   const handleFileSelect = (file: File) => {
     setDraftFile(file);
+    setDraftError(null);
     // Pre-fill date with today if empty
     if (!draftDate) {
       setDraftDate(new Date().toISOString().split('T')[0]);
@@ -163,6 +176,7 @@ export const ReportsManager = () => {
     setDraftFile(null);
     setDraftPersonId("");
     setDraftDate("");
+    setDraftError(null);
   };
 
   const handleSaveDraft = async () => {
@@ -173,6 +187,7 @@ export const ReportsManager = () => {
     const reportDate = draftDate;
 
     setIsUploading(true);
+    setDraftError(null);
     let reportId: string | null = null;
     try {
       // 1. Create Report first
@@ -246,10 +261,11 @@ export const ReportsManager = () => {
     } catch (e) {
       console.error("Upload failed", e);
       if (reportId) {
-        const message = e instanceof Error ? e.message : "Upload failed.";
+        const message = resolveErrorMessage(e, "Upload failed.");
         setReportNotice(reportId, { tone: "error", message });
       } else {
-        alert("Failed to upload report. Check console.");
+        const message = resolveErrorMessage(e, "Upload failed.");
+        setDraftError(message);
       }
     } finally {
       setIsUploading(false);
@@ -293,6 +309,46 @@ export const ReportsManager = () => {
       }
     },
     [supabase, setReportNotice, updateReportStatus],
+  );
+
+  const handleDeleteReport = useCallback(
+    async () => {
+      if (!reportToDelete) return;
+      setDeletingReportId(reportToDelete.id);
+      setDeleteError(null);
+
+      const { error } = await supabase.rpc("soft_delete_report", {
+        target_report_id: reportToDelete.id,
+      });
+
+      if (error) {
+        const message = error.message ?? "Failed to delete report.";
+        setDeleteError(message);
+        setReportNotice(reportToDelete.id, {
+          tone: "error",
+          message,
+        });
+        setDeletingReportId(null);
+        return;
+      }
+
+      setReports((prev) => prev.filter((report) => report.id !== reportToDelete.id));
+      setExtractingReports((prev) => {
+        if (!prev[reportToDelete.id]) return prev;
+        const next = { ...prev };
+        delete next[reportToDelete.id];
+        return next;
+      });
+      setReportNotices((prev) => {
+        if (!prev[reportToDelete.id]) return prev;
+        const next = { ...prev };
+        delete next[reportToDelete.id];
+        return next;
+      });
+      setDeletingReportId(null);
+      setReportToDelete(null);
+    },
+    [reportToDelete, setReportNotice, supabase],
   );
 
   // --- Render Views ---
@@ -372,6 +428,12 @@ export const ReportsManager = () => {
                     className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
                   />
                 </div>
+
+                {draftError && (
+                  <p className="text-sm text-rose-600 dark:text-rose-400">
+                    {draftError}
+                  </p>
+                )}
 
                 <div className="pt-4 flex gap-3">
                   <Button
@@ -499,6 +561,19 @@ export const ReportsManager = () => {
                           <a href={`/reports/${report.id}/review`}>View</a>
                         </Button>
                       )}
+                      {role === "owner" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReportToDelete(report);
+                            setDeleteError(null);
+                          }}
+                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                        >
+                          Delete
+                        </Button>
+                      )}
                       <Badge className={`
                         h-8 px-3 rounded-lg text-sm font-medium border-0
                         ${report.status === 'final' ? 'bg-emerald-500/10 text-emerald-400' :
@@ -517,6 +592,57 @@ export const ReportsManager = () => {
         </div>
 
       </div>
+      {reportToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="presentation"
+          onClick={() => {
+            if (!deletingReportId) {
+              setReportToDelete(null);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-report-title"
+            className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="delete-report-title" className="text-xl font-semibold text-zinc-900">
+              Delete report?
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500">
+              This hides the report and its results. You can restore it later when cleanup tooling exists.
+            </p>
+            {deleteError && (
+              <p className="mt-3 text-sm text-rose-600">
+                {deleteError}
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setReportToDelete(null);
+                  setDeleteError(null);
+                }}
+                disabled={deletingReportId === reportToDelete.id}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteReport}
+                disabled={deletingReportId === reportToDelete.id}
+              >
+                {deletingReportId === reportToDelete.id ? "Deleting..." : "Delete report"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };
