@@ -12,9 +12,12 @@ type ErrorBoundaryState = {
 };
 
 const defaultFallback = (
-  <div role="alert" className="rounded-2xl border border-zinc-200 bg-white/80 p-6 text-zinc-900 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
+  <div
+    role="alert"
+    className="rounded-2xl border border-border bg-background p-6 text-foreground shadow-sm"
+  >
     <p className="text-sm font-semibold">Something went wrong.</p>
-    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+    <p className="mt-1 text-sm text-muted-foreground">
       Please refresh the page and try again.
     </p>
   </div>

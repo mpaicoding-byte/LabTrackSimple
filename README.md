@@ -60,6 +60,7 @@ Storage policies are documented in
 ## Stack
 
 - Next.js App Router (TypeScript)
+- shadcn/ui (New York style, CSS variable theme)
 - Supabase (Postgres + RLS + Storage + Edge Functions)
 
 ## Project Layout

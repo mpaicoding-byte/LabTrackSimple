@@ -27,6 +27,15 @@ This plan is designed for coding agents. Each phase has explicit, verifiable che
 - Base metadata is exported from `app/layout.tsx`
 - Loading/error/not-found pages render for their respective states
 
+## Phase 0b — UI Standardization (shadcn)
+
+### Checklist
+- [x] Initialize shadcn/ui (components.json + deps)
+- [x] Replace core UI primitives with shadcn defaults (button, card, input, badge, skeleton)
+- [x] Remove custom UI utilities/styles in globals (glass, gradients, custom scrollbar)
+- [x] Align feature screens to shadcn tokens (reduce bespoke color/gradient styling)
+- [x] UI verification via chrome devtools MCP after refactor
+
 ## Phase 1 — Data Model + RLS
 
 ### Checklist

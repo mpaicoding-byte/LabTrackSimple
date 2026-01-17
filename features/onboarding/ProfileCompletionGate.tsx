@@ -75,10 +75,10 @@ export const ProfileCompletionGate = ({
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 py-20">
-          <div className="h-12 w-12 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Checking your profile...</p>
+          <div className="h-12 w-12 animate-pulse rounded-full bg-muted" />
+          <p className="text-sm text-muted-foreground">Checking your profile...</p>
         </div>
       </div>
     );

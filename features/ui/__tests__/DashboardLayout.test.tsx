@@ -22,5 +22,8 @@ test("renders a mobile header container", () => {
     </DashboardLayout>,
   );
 
-  expect(screen.getByTestId("mobile-header")).toBeInTheDocument();
+  const header = screen.getByTestId("mobile-header");
+  expect(header).toBeInTheDocument();
+  expect(header).toHaveClass("border-border");
+  expect(header).toHaveClass("bg-background");
 });

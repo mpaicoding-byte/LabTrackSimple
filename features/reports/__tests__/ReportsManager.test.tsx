@@ -316,7 +316,7 @@ test("shows an inline error when the report cannot be created", async () => {
   expect(await screen.findByText(/insert failed/i)).toBeInTheDocument();
 });
 
-test("owners can soft delete a report from the list", async () => {
+test("owners do not see delete action in the report list", async () => {
   reportsData = [
     {
       id: "report-1",
@@ -336,27 +336,9 @@ test("owners can soft delete a report from the list", async () => {
   const reportCard = reportHeading.closest(".group");
   expect(reportCard).not.toBeNull();
 
-  await userEvent.click(
-    within(reportCard as HTMLElement).getByRole("button", { name: /delete/i }),
-  );
-
-  expect(await screen.findByRole("heading", { name: /delete report/i })).toBeVisible();
-  await userEvent.click(
-    screen.getByRole("button", { name: /delete report/i }),
-  );
-
-  await waitFor(() => {
-    expect(rpcMock).toHaveBeenCalledWith("soft_delete_report", {
-      target_report_id: "report-1",
-    });
-  });
-
-  await waitFor(() => {
-    expect(
-      screen.queryByRole("heading", { name: /ada lovelace/i }),
-    ).toBeNull();
-  });
-
+  expect(
+    within(reportCard as HTMLElement).queryByRole("button", { name: /delete/i }),
+  ).toBeNull();
 });
 
 test("shows view for final reports and review for reports needing review", async () => {

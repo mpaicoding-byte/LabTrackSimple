@@ -46,10 +46,10 @@ export function FileDropzone({ onFileSelect, disabled }: FileDropzoneProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
-                "relative flex flex-col items-center justify-center rounded-xl border-dashed border-2 px-6 py-12 transition-colors cursor-pointer",
+                "relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-12 transition-colors cursor-pointer",
                 isDragActive
-                    ? "border-indigo-400 bg-indigo-50/50"
-                    : "border-zinc-200 bg-zinc-50/50 hover:bg-zinc-50",
+                    ? "border-ring bg-muted/60"
+                    : "border-border bg-muted/30 hover:bg-muted/50",
                 disabled && "opacity-50 cursor-not-allowed"
             )}
         >
@@ -61,14 +61,14 @@ export function FileDropzone({ onFileSelect, disabled }: FileDropzoneProps) {
                 accept="application/pdf,image/*"
                 disabled={disabled}
             />
-            <div className="rounded-full bg-white p-4 shadow-sm ring-1 ring-zinc-200/50">
-                <UploadCloud className="h-8 w-8 text-indigo-500" />
+            <div className="rounded-full bg-muted p-4 shadow-sm ring-1 ring-border">
+                <UploadCloud className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="mt-4 text-center">
-                <p className="text-sm font-semibold text-zinc-900">
+                <p className="text-sm font-semibold text-foreground">
                     Click to upload or drag and drop
                 </p>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                     PDF, PNG, or JPG (max 10MB)
                 </p>
             </div>

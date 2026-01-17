@@ -39,10 +39,19 @@ test.describe("report delete", () => {
       .locator("xpath=ancestor::div[contains(@class,'group')][1]");
     await expect(reportCard).toBeVisible();
 
-    await reportCard.getByRole("button", { name: /delete/i }).click();
+    const reviewLink = reportCard.getByRole("link", { name: /review|view/i });
+    await expect(reviewLink).toBeVisible({ timeout: 30_000 });
+    await reviewLink.click();
+
+    await page.waitForURL(/\/reports\/[^/]+\/review/, { timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /review results/i })).toBeVisible();
+
+    await page.getByRole("button", { name: /delete report/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: /delete report/i })).toBeVisible();
     await dialog.getByRole("button", { name: /delete report/i }).click();
+
+    await page.waitForURL(/\/reports$/, { timeout: 30_000 });
     await expect(reportCard).toHaveCount(0);
   });
 });

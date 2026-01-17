@@ -1,13 +1,13 @@
 ---
 name: docs-and-specs-first
-description: Consult official docs via Context7/Tavily before implementing changes, and apply the repo's spec-generation workflow when asked to create plans/specs. Use for new dependencies, SDK/API wiring, or when producing feature docs.
+description: Consult official docs via Context7/web search tool before implementing changes, and apply the repo's spec-generation workflow when asked to create plans/specs. Use for new dependencies, SDK/API wiring, or when producing feature docs.
 ---
 
 # Docs Tools First
 
 ## Purpose
 
-Always consult official documentation before implementation or wiring code. Prefer current best practices and the latest stable guidance, using Context7 for library docs and Tavily for official sites, release notes, and integration guides.
+Always consult official documentation before implementation or wiring code. Prefer current best practices and the latest stable guidance, using Context7 for library docs and web search tool for official sites, release notes, and integration guides.
 
 ## Workflow
 
@@ -24,9 +24,9 @@ If you complete any checklist item (specs, plans, phase checklists), mark it don
 Use Context7 to resolve the library ID and query the exact topic needed. Capture recommended patterns, required configuration, and warnings.
 - Prefer the newest stable docs unless the user specifies a version
 
-### 3) Validate with Tavily (secondary)
+### 3) Validate with web search tool (secondary)
 
-Use Tavily to fetch from official documentation sites only if needed and context7 is not enough or if you want to browse web
+Use web search tool to fetch from official documentation sites only if needed and context7 is not enough or if you want to browse web
 
 ### 4) Summarize before coding
 
@@ -40,7 +40,7 @@ Only after docs are read and summarized, implement the minimal code required by 
 
 - Do not implement or wire code before consulting docs.
 - Prefer official sources and primary documentation over blogs.
-- Keep Context7 and Tavily calls focused to stay within tool limits.
+- Keep Context7 and your web search tool calls focused to stay within tool limits.
 - When reviewing or editing docs, align terminology and paths (schema fields, storage paths, onboarding requirements) across README, specs, and checklists.
 - When a checklist item is completed, update the checklist immediately (no batching).
 

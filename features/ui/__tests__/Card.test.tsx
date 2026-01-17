@@ -4,10 +4,11 @@ import { render, screen } from "@testing-library/react";
 
 import { Card } from "@/components/ui/card";
 
-test("card includes light mode styling classes", () => {
+test("card uses shadcn theme tokens", () => {
   render(<Card data-testid="card" />);
 
   const card = screen.getByTestId("card");
-  expect(card).toHaveClass("bg-white/80");
-  expect(card).toHaveClass("border-zinc-200/80");
+  expect(card).toHaveClass("bg-card");
+  expect(card).toHaveClass("text-card-foreground");
+  expect(card).toHaveClass("shadow-sm");
 });

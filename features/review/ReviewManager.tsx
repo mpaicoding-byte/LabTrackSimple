@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,7 @@ type ReportNotice = {
 export const ReviewManager = ({ reportId }: { reportId?: string }) => {
   const params = useParams<{ reportId?: string }>();
   const resolvedReportId = reportId ?? params?.reportId;
+  const router = useRouter();
 
   const {
     supabase,
@@ -48,6 +49,9 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
   } = useReviewData(resolvedReportId);
 
   const [notice, setNotice] = useState<ReportNotice | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const editedCount = useMemo(
     () => rows.filter((row) => row.edited_at).length,
@@ -91,6 +95,26 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     !commitSaving &&
     totalRows > 0 &&
     Boolean(runId);
+
+  const canDelete = role === "owner" && Boolean(report?.id);
+
+  const handleDeleteReport = useCallback(async () => {
+    if (!resolvedReportId) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    const { error } = await supabase.rpc("soft_delete_report", {
+      target_report_id: resolvedReportId,
+    });
+
+    if (error) {
+      setDeleteError(error.message ?? "Failed to delete report.");
+      setIsDeleting(false);
+      return;
+    }
+
+    router.push("/reports");
+  }, [resolvedReportId, router, supabase]);
 
   useEffect(() => {
     if (!isFinal && isEditingFinal) {
@@ -138,10 +162,16 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
           reportDate={report?.report_date ?? null}
           notice={notice}
           previewUrl={previewUrl}
+          canDelete={canDelete}
+          deleteDisabled={isDeleting}
+          onDelete={() => {
+            setDeleteOpen(true);
+            setDeleteError(null);
+          }}
         />
 
         <div className="grid gap-6">
-          <Card className="border-zinc-200">
+          <Card>
             <CardHeader>
               <CardTitle>Extracted results</CardTitle>
               <CardDescription>
@@ -156,10 +186,10 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
             </CardHeader>
             <CardContent className="space-y-6">
               {totalRows === 0 ? (
-                <p className="text-sm text-zinc-600">No results yet.</p>
+                <p className="text-sm text-muted-foreground">No results yet.</p>
               ) : null}
               {hasDirty && canEdit && (
-                <p className="text-xs text-amber-600">
+                <p className="text-xs text-muted-foreground">
                   Changes are saved when you confirm.
                 </p>
               )}
@@ -174,13 +204,13 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
               />
 
               {canEdit && previewUrl && (
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Tip: Add missing tests only if they appear in this uploaded report.
                 </p>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   {rows.length} results · {editedCount} edited
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -219,6 +249,57 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
             </CardContent>
           </Card>
         </div>
+        {deleteOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            role="presentation"
+            onClick={() => {
+              if (!isDeleting) {
+                setDeleteOpen(false);
+                setDeleteError(null);
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-report-title"
+              className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-lg"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h2 id="delete-report-title" className="text-xl font-semibold text-foreground">
+                Delete report?
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                This hides the report and its results. You can restore it later when cleanup tooling exists.
+              </p>
+              {deleteError && (
+                <p className="mt-3 text-sm text-destructive">
+                  {deleteError}
+                </p>
+              )}
+              <div className="mt-6 flex justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setDeleteOpen(false);
+                    setDeleteError(null);
+                  }}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteReport}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "Deleting..." : "Delete report"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

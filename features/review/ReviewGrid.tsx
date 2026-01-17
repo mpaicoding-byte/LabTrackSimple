@@ -51,7 +51,7 @@ export const ReviewGrid = ({
             }
           />
           {isEdited && (
-            <span className="text-xs font-medium text-indigo-500">Edited</span>
+            <span className="text-xs font-medium text-primary">Edited</span>
           )}
         </div>
       </td>
@@ -116,9 +116,9 @@ export const ReviewGrid = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white/80">
+      <div className="overflow-x-auto rounded-lg border border-border bg-background">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
+          <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Value</th>
@@ -128,34 +128,34 @@ export const ReviewGrid = ({
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200">
+          <tbody className="divide-y divide-border">
             {readOnly
               ? rows.map((row) => (
                   <tr key={row.id} className="align-top">
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
-                        <span className="text-zinc-900">{row.name_raw}</span>
+                        <span className="text-foreground">{row.name_raw}</span>
                         {row.edited_at && (
-                          <span className="text-xs font-medium text-indigo-500">
+                          <span className="text-xs font-medium text-primary">
                             Edited
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-zinc-700">{row.value_raw}</span>
+                      <span className="text-foreground">{row.value_raw}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-zinc-700">{row.unit_raw ?? "—"}</span>
+                      <span className="text-foreground">{row.unit_raw ?? "—"}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-zinc-700">{row.value_num ?? "—"}</span>
+                      <span className="text-foreground">{row.value_num ?? "—"}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-zinc-600">{row.details_raw ?? "—"}</span>
+                      <span className="text-muted-foreground">{row.details_raw ?? "—"}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-zinc-400">Owner only</span>
+                      <span className="text-xs text-muted-foreground">Owner only</span>
                     </td>
                   </tr>
                 ))

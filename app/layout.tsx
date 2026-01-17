@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -7,14 +7,8 @@ import { SessionProvider } from "@/features/auth/SessionProvider";
 import { ProfileCompletionGate } from "@/features/onboarding/ProfileCompletionGate";
 
 const bodyFont = Inter({
-  variable: "--font-body",
+  variable: "--font-sans",
   subsets: ["latin"],
-});
-
-const displayFont = Outfit({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${bodyFont.variable} ${displayFont.variable} antialiased`} suppressHydrationWarning>
+      <body className={`${bodyFont.variable} font-sans antialiased`} suppressHydrationWarning>
         <SessionProvider>
           <ThemeProvider
             attribute="class"

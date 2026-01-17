@@ -6,9 +6,11 @@ import { vi } from "vitest";
 
 import { ReviewManager } from "../ReviewManager";
 
+const pushMock = vi.fn();
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push: pushMock,
     replace: vi.fn(),
     prefetch: vi.fn(),
   }),
@@ -81,6 +83,7 @@ const buildSupabaseMock = ({
     data: { status: "final" },
     error: null,
   });
+  const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
 
   const createSignedUrlMock = vi.fn().mockResolvedValue({
     data: { signedUrl: "https://example.com/artifact.pdf" },
@@ -151,7 +154,8 @@ const buildSupabaseMock = ({
     functions: {
       invoke: invokeMock,
     },
-    _mocks: { insertMock, updateMock, invokeMock, createSignedUrlMock },
+    rpc: rpcMock,
+    _mocks: { insertMock, updateMock, invokeMock, createSignedUrlMock, rpcMock },
   };
 };
 
@@ -307,6 +311,40 @@ test("preview button links to the signed URL when available", async () => {
     expect(supabaseMock._mocks.createSignedUrlMock).toHaveBeenCalled();
   });
   expect(previewLink).toHaveAttribute("href", "https://example.com/artifact.pdf");
+});
+
+test("owners can delete a report from the review header", async () => {
+  const user = userEvent.setup();
+
+  renderReview({
+    resultRows: [
+      {
+        id: "row-1",
+        name_raw: "Glucose",
+        value_raw: "90",
+        unit_raw: "mg/dL",
+        value_num: 90,
+        details_raw: null,
+        edited_at: null,
+      },
+    ],
+  });
+
+  const headerDeleteButton = await screen.findByRole("button", {
+    name: /delete report/i,
+  });
+  await user.click(headerDeleteButton);
+
+  expect(await screen.findByRole("heading", { name: /delete report/i })).toBeVisible();
+
+  const deleteButtons = screen.getAllByRole("button", { name: /delete report/i });
+  await user.click(deleteButtons[deleteButtons.length - 1]);
+
+  await waitFor(() => {
+    expect(supabaseMock._mocks.rpcMock).toHaveBeenCalledWith("soft_delete_report", {
+      target_report_id: "report-1",
+    });
+  });
 });
 
 test("shows an error when the report is deleted", async () => {

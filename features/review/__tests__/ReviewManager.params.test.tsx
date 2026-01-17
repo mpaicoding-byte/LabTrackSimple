@@ -8,6 +8,11 @@ import { useReviewData } from "../useReviewData";
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ reportId: "report-123" }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/layout/DashboardLayout", () => ({

@@ -15,3 +15,11 @@ test("renders child element when asChild is true", () => {
   expect(link).toHaveAttribute("href", "/auth");
   expect(screen.queryByRole("button", { name: /go to sign in/i })).toBeNull();
 });
+
+test("default button uses shadcn base styling", () => {
+  render(<Button>Continue</Button>);
+
+  const button = screen.getByRole("button", { name: /continue/i });
+  expect(button).toHaveClass("rounded-md");
+  expect(button).toHaveClass("bg-primary");
+});

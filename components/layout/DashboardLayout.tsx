@@ -10,14 +10,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <main className="lg:pl-64">
                 <header
                     data-testid="mobile-header"
-                    className="sticky top-0 z-20 border-b border-zinc-200/70 bg-white/90 backdrop-blur-xl lg:hidden dark:border-white/5 dark:bg-black/40"
+                    className="sticky top-0 z-20 border-b border-border bg-background lg:hidden"
                 >
                     <div className="flex items-center justify-between px-4 py-3">
                         <Link
                             href="/"
-                            className="flex items-center gap-2 font-display text-base font-semibold text-zinc-900 dark:text-white"
+                            className="flex items-center gap-2 text-base font-semibold text-foreground"
                         >
-                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                                 <TestTube2 className="h-5 w-5" />
                             </span>
                             <span>LabTrack</span>
@@ -25,19 +25,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         <nav className="flex items-center gap-2 text-xs font-medium">
                             <Link
                                 href="/"
-                                className="rounded-full border border-zinc-200/80 bg-white px-3 py-1 text-zinc-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
+                                className="rounded-full border border-border bg-background px-3 py-1 text-muted-foreground transition hover:text-foreground"
                             >
                                 Dashboard
                             </Link>
                             <Link
                                 href="/reports"
-                                className="rounded-full border border-zinc-200/80 bg-white px-3 py-1 text-zinc-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
+                                className="rounded-full border border-border bg-background px-3 py-1 text-muted-foreground transition hover:text-foreground"
                             >
                                 Reports
                             </Link>
                             <Link
                                 href="/people"
-                                className="rounded-full border border-zinc-200/80 bg-white px-3 py-1 text-zinc-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
+                                className="rounded-full border border-border bg-background px-3 py-1 text-muted-foreground transition hover:text-foreground"
                             >
                                 People
                             </Link>

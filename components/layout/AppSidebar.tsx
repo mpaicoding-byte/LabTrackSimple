@@ -42,13 +42,13 @@ export function AppSidebar() {
     };
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r border-zinc-200 dark:border-white/5 bg-white/70 dark:bg-black/20 backdrop-blur-2xl lg:flex transition-colors duration-300">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r border-border bg-background lg:flex">
             <div className="flex h-20 items-center px-6">
-                <Link href="/" className="flex items-center gap-3 font-display font-bold text-xl tracking-tight text-zinc-900 dark:text-white glow-text">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 text-white">
+                <Link href="/" className="flex items-center gap-3 text-xl font-bold tracking-tight text-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                         <TestTube2 className="h-6 w-6" />
                     </div>
-                    <span className="bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-white/70 bg-clip-text text-transparent transition-all">LabTrack</span>
+                    <span>LabTrack</span>
                 </Link>
             </div>
 
@@ -59,33 +59,33 @@ export function AppSidebar() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300",
+                                "group flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors",
                                 isActive(item.href)
-                                    ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 shadow-sm dark:shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-200 dark:border-indigo-500/20"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white"
+                                    ? "bg-muted text-foreground"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
                         >
-                            <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover:scale-110", isActive(item.href) ? "text-indigo-500 dark:text-indigo-400" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white")} />
+                            <item.icon className={cn("h-5 w-5", isActive(item.href) ? "text-foreground" : "text-muted-foreground")} />
                             {item.label}
                         </Link>
                     ))}
                 </nav>
             </div>
 
-            <div className="border-t border-zinc-200 dark:border-white/5 p-4 bg-zinc-50/50 dark:bg-black/10 transition-colors">
+            <div className="border-t border-border p-4">
                 {loading ? (
-                    <div className="h-12 animate-pulse rounded-xl bg-zinc-100 dark:bg-white/5" />
+                    <div className="h-12 animate-pulse rounded-md bg-muted" />
                 ) : session ? (
                     <div className="space-y-3">
                         <div className="px-2">
-                            <p className="truncate text-xs font-medium text-zinc-500 dark:text-zinc-400">Signed in as</p>
-                            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white/90">{session.user.email}</p>
+                            <p className="truncate text-xs font-medium text-muted-foreground">Signed in as</p>
+                            <p className="truncate text-sm font-semibold text-foreground">{session.user.email}</p>
                         </div>
                         <Button
                             variant="ghost"
                             onClick={handleSignOut}
                             disabled={signingOut}
-                            className="w-full justify-start gap-3 rounded-xl text-zinc-500 dark:text-zinc-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-500/20 transition-all"
+                            className="w-full justify-start gap-3"
                         >
                             <LogOut className="h-4 w-4" />
                             {signingOut ? "Signing out..." : "Sign out"}
@@ -95,7 +95,7 @@ export function AppSidebar() {
                     <Link href="/auth">
                         <Button
                             variant="default"
-                            className="w-full justify-start gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all border-0 text-white"
+                            className="w-full justify-start gap-3"
                         >
                             <LogIn className="h-4 w-4" />
                             Sign in

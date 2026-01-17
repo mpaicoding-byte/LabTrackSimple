@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { LoadingState } from "@/components/ui/loading-state";
 
 type PersonRow = {
   id: string;
@@ -160,11 +161,13 @@ export const PeopleManager = () => {
     return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-          <div className="bg-indigo-50 p-4 rounded-full">
-            <User className="w-8 h-8 text-indigo-600" />
+          <div className="bg-muted p-4 rounded-full">
+            <User className="w-8 h-8 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-semibold">Please Sign In</h2>
-          <p className="text-slate-500 max-w-sm text-center">You need to be signed in to manage your household members.</p>
+          <p className="text-muted-foreground max-w-sm text-center">
+            You need to be signed in to manage your household members.
+          </p>
           <Button asChild>
             <a href="/auth">Go to Sign In</a>
           </Button>
@@ -177,7 +180,7 @@ export const PeopleManager = () => {
     return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex h-[50vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-zinc-300" />
+          <LoadingState />
         </div>
       </DashboardLayout>
     );
@@ -188,55 +191,52 @@ export const PeopleManager = () => {
     return wrapWithBoundary(
       <DashboardLayout>
         <div className="mx-auto max-w-2xl animate-in fade-in zoom-in-95 duration-300">
-          <Card className="glass dark:bg-white/5 overflow-hidden border-zinc-200 dark:border-white/10 shadow-2xl">
-            <CardHeader className="border-b border-zinc-200 dark:border-white/5 pb-6">
-              <CardTitle className="text-2xl font-display text-zinc-900 dark:text-white">Add Family Member</CardTitle>
-              <CardDescription className="text-zinc-500 dark:text-zinc-400">Add a new person to track reports for.</CardDescription>
+          <Card>
+            <CardHeader className="border-b pb-6">
+              <h2 className="text-2xl font-semibold text-foreground">
+                Add Family Member
+              </h2>
+              <p className="text-muted-foreground">
+                Add a new person to track reports for.
+              </p>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <div className="space-y-4">
                 <div className="md:grid md:grid-cols-2 gap-6 space-y-4 md:space-y-0">
                   <div className="space-y-2">
-                    <label htmlFor="person-name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Full Name</label>
+                    <label htmlFor="person-name" className="text-sm font-medium">Full Name</label>
                     <Input
                       id="person-name"
                       placeholder="e.g. Grandma Mae"
                       value={newName}
                       onChange={e => setNewName(e.target.value)}
-                      className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-10 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="person-dob" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Date of Birth</label>
+                    <label htmlFor="person-dob" className="text-sm font-medium">Date of Birth</label>
                     <Input
                       id="person-dob"
                       type="date"
                       value={newDob}
                       onChange={e => setNewDob(e.target.value)}
-                      className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-10 rounded-xl"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="person-gender" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">Gender</label>
-                  <div className="relative">
-                    <select
-                      id="person-gender"
-                      className="w-full appearance-none bg-white dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-sm"
-                      value={newGender}
-                      onChange={e => setNewGender(e.target.value)}
-                    >
-                      {genderOptions.map(o => <option key={o.value} value={o.value} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">{o.label}</option>)}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500 dark:text-zinc-400">
-                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                    </div>
-                  </div>
+                  <label htmlFor="person-gender" className="text-sm font-medium">Gender</label>
+                  <select
+                    id="person-gender"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                    value={newGender}
+                    onChange={e => setNewGender(e.target.value)}
+                  >
+                    {genderOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="flex gap-3 justify-end pt-4">
-                <Button variant="ghost" onClick={() => setIsCreating(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-xl">Cancel</Button>
-                <Button onClick={createPerson} disabled={loading || !canCreate} className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 rounded-xl px-6">
+                <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
+                <Button onClick={createPerson} disabled={loading || !canCreate}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Person"}
                 </Button>
               </div>
@@ -253,14 +253,13 @@ export const PeopleManager = () => {
       <div className="flex flex-col gap-8 relative z-10">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-display font-bold text-zinc-900 dark:text-white mb-2">My Family</h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-lg">Manage the people you care for.</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">My Family</h1>
+            <p className="text-muted-foreground text-lg">Manage the people you care for.</p>
           </div>
           {role === 'owner' && (
             <Button
               onClick={() => setIsCreating(true)}
               disabled={isCreating}
-              className="h-12 bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 text-indigo-600 dark:text-white border border-zinc-200 dark:border-white/10 hover:border-indigo-200 dark:hover:border-white/20 shadow-xl backdrop-blur-md rounded-xl px-6"
             >
               <Plus className="mr-2 h-5 w-5" />
               Add Family Member
@@ -271,18 +270,18 @@ export const PeopleManager = () => {
         {/* List */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {people.map(person => (
-            <Card key={person.id} className="group overflow-hidden bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:border-indigo-200 dark:hover:border-white/20 transition-all duration-300 backdrop-blur-md hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10 shadow-sm dark:shadow-none">
+            <Card key={person.id} className="group overflow-hidden">
               <div className="p-6 flex flex-col gap-6">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/10 dark:from-indigo-500/20 to-purple-500/10 dark:to-purple-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-white/5 shadow-inner">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground border border-border">
                     <User className="h-7 w-7" />
                   </div>
                   {role === 'owner' && editingId !== person.id && (
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="icon" variant="ghost" onClick={() => startEdit(person)} className="h-8 w-8 text-zinc-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/10 rounded-lg">
+                      <Button size="icon" variant="ghost" onClick={() => startEdit(person)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => softDeletePerson(person.id)} className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg">
+                      <Button size="icon" variant="ghost" onClick={() => softDeletePerson(person.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -291,23 +290,23 @@ export const PeopleManager = () => {
 
                 {editingId === person.id ? (
                   <div className="space-y-4 animate-in fade-in">
-                    <Input value={editName} onChange={e => setEditName(e.target.value)} className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white h-9 rounded-lg" />
-                    <Input type="date" value={editDob} onChange={e => setEditDob(e.target.value)} className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white h-9 rounded-lg" />
+                    <Input value={editName} onChange={e => setEditName(e.target.value)} />
+                    <Input type="date" value={editDob} onChange={e => setEditDob(e.target.value)} />
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" onClick={renamePerson} className="bg-indigo-600 hover:bg-indigo-500 rounded-lg"><Check className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg"><X className="h-4 w-4" /></Button>
+                      <Button size="sm" onClick={renamePerson}><Check className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <h3 className="font-display font-bold text-xl text-zinc-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">{person.name}</h3>
-                    <div className="flex flex-col gap-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    <h3 className="font-semibold text-xl text-foreground mb-1">{person.name}</h3>
+                    <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground"></span>
                         {person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : "DOB Unknown"}
                       </span>
                       <span className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground"></span>
                         {formatGender(person.gender)}
                       </span>
                     </div>
@@ -319,8 +318,8 @@ export const PeopleManager = () => {
 
           {/* Empty State Card if no people */}
           {people.length === 0 && (
-            <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 dark:border-white/10 rounded-3xl bg-white/40 dark:bg-white/5">
-              <p className="text-zinc-500">No family members added yet.</p>
+            <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl bg-muted/30">
+              <p className="text-muted-foreground">No family members added yet.</p>
             </div>
           )}
         </div>

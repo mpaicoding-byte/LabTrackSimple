@@ -1,18 +1,13 @@
-import * as React from "react";
+import { cn } from "@/lib/utils"
 
-import { cn } from "@/lib/utils";
-
-type SkeletonProps = React.HTMLAttributes<HTMLDivElement>;
-
-export function Skeleton({ className, ...props }: SkeletonProps) {
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      aria-hidden="true"
-      className={cn(
-        "animate-pulse rounded-md bg-zinc-200/70 dark:bg-white/10",
-        className,
-      )}
+      data-slot="skeleton"
+      className={cn("bg-accent animate-pulse rounded-md", className)}
       {...props}
     />
-  );
+  )
 }
+
+export { Skeleton }

@@ -38,13 +38,14 @@ vi.mock("@/features/core/supabaseClient", () => ({
 }));
 
 const sessionMock = { user: { id: "user-1", email: "owner@example.com" } };
+const sessionState = {
+  session: sessionMock,
+  loading: false,
+  error: null as Error | null,
+};
 
 vi.mock("@/features/auth/SessionProvider", () => ({
-  useSession: () => ({
-    session: sessionMock,
-    loading: false,
-    error: null,
-  }),
+  useSession: () => sessionState,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -60,6 +61,7 @@ test("requires date of birth and gender before enabling submit", async () => {
     name: /save profile/i,
   });
 
+  expect(submitButton).toHaveAttribute("data-slot", "button");
   expect(submitButton).toBeDisabled();
 
   fireEvent.change(dobInput, { target: { value: "1990-01-01" } });
@@ -97,4 +99,14 @@ test("submits profile updates and redirects", async () => {
   await waitFor(() => {
     expect(pushMock).toHaveBeenCalledWith("/people");
   });
+});
+
+test("profile completion uses shared loading state while session loads", () => {
+  sessionState.loading = true;
+
+  render(<ProfileCompletionScreen />);
+
+  expect(screen.getByTestId("loading-state")).toBeInTheDocument();
+
+  sessionState.loading = false;
 });

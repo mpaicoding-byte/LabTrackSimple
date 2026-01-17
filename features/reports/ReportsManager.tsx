@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { LoadingState } from "@/components/ui/loading-state";
 import { FileDropzone } from "./components/FileDropzone";
 
 type PersonRow = {
@@ -67,9 +68,6 @@ export const ReportsManager = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [extractingReports, setExtractingReports] = useState<Record<string, boolean>>({});
   const [reportNotices, setReportNotices] = useState<Record<string, ReportNotice>>({});
-  const [reportToDelete, setReportToDelete] = useState<ReportRow | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
 
   // Draft Form State
   const [draftPersonId, setDraftPersonId] = useState("");
@@ -311,46 +309,6 @@ export const ReportsManager = () => {
     [supabase, setReportNotice, updateReportStatus],
   );
 
-  const handleDeleteReport = useCallback(
-    async () => {
-      if (!reportToDelete) return;
-      setDeletingReportId(reportToDelete.id);
-      setDeleteError(null);
-
-      const { error } = await supabase.rpc("soft_delete_report", {
-        target_report_id: reportToDelete.id,
-      });
-
-      if (error) {
-        const message = error.message ?? "Failed to delete report.";
-        setDeleteError(message);
-        setReportNotice(reportToDelete.id, {
-          tone: "error",
-          message,
-        });
-        setDeletingReportId(null);
-        return;
-      }
-
-      setReports((prev) => prev.filter((report) => report.id !== reportToDelete.id));
-      setExtractingReports((prev) => {
-        if (!prev[reportToDelete.id]) return prev;
-        const next = { ...prev };
-        delete next[reportToDelete.id];
-        return next;
-      });
-      setReportNotices((prev) => {
-        if (!prev[reportToDelete.id]) return prev;
-        const next = { ...prev };
-        delete next[reportToDelete.id];
-        return next;
-      });
-      setDeletingReportId(null);
-      setReportToDelete(null);
-    },
-    [reportToDelete, setReportNotice, supabase],
-  );
-
   // --- Render Views ---
 
   // Login Gate
@@ -358,11 +316,13 @@ export const ReportsManager = () => {
     return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-          <div className="bg-indigo-50 p-4 rounded-full">
-            <User className="w-8 h-8 text-indigo-600" />
+          <div className="bg-muted p-4 rounded-full">
+            <User className="w-8 h-8 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-semibold">Please Sign In</h2>
-          <p className="text-slate-500 max-w-sm text-center">You need to be signed in to view reports and artifacts.</p>
+          <p className="text-muted-foreground max-w-sm text-center">
+            You need to be signed in to view reports and artifacts.
+          </p>
           <Button asChild>
             <a href="/auth">Go to Sign In</a>
           </Button>
@@ -375,7 +335,7 @@ export const ReportsManager = () => {
     return wrapWithBoundary(
       <DashboardLayout>
         <div className="flex h-[50vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-zinc-300" />
+          <LoadingState />
         </div>
       </DashboardLayout>
     );
@@ -387,28 +347,31 @@ export const ReportsManager = () => {
       <DashboardLayout>
         <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <header className="mb-8">
-            <h1 className="text-3xl font-display font-bold text-zinc-900 dark:text-white mb-2">New Report from File</h1>
-            <p className="text-zinc-500 dark:text-zinc-400">{draftFile.name} ({Math.round(draftFile.size / 1024)} KB)</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">New Report from File</h1>
+            <p className="text-muted-foreground">
+              {draftFile.name} ({Math.round(draftFile.size / 1024)} KB)
+            </p>
           </header>
 
           <div className="grid gap-8">
-            <Card className="bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 backdrop-blur-xl">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-zinc-900 dark:text-white">Report Details</CardTitle>
-                <CardDescription className="text-zinc-500 dark:text-zinc-400">Who is this report for?</CardDescription>
+                <CardTitle>Report Details</CardTitle>
+                <CardDescription>Who is this report for?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Person</label>
+                  <label className="text-sm font-medium">Person</label>
                   <div className="flex flex-wrap gap-2">
                     {people.map(p => (
                       <button
                         key={p.id}
                         onClick={() => setDraftPersonId(p.id)}
-                        className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition-all duration-300 ${draftPersonId === p.id
-                          ? "border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 shadow-lg shadow-indigo-500/10"
-                          : "border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
-                          }`}
+                        className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm transition-colors ${
+                          draftPersonId === p.id
+                            ? "border-ring bg-muted text-foreground"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        }`}
                       >
                         <User className="h-4 w-4" />
                         {p.name}
@@ -418,33 +381,36 @@ export const ReportsManager = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label htmlFor="report-date" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Report date</label>
+                  <label htmlFor="report-date" className="text-sm font-medium">Report date</label>
                   <Input
                     id="report-date"
                     aria-label="Report date"
                     type="date"
                     value={draftDate}
                     onChange={(e) => setDraftDate(e.target.value)}
-                    className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
                   />
                 </div>
 
                 {draftError && (
-                  <p className="text-sm text-rose-600 dark:text-rose-400">
-                    {draftError}
-                  </p>
+                  <p className="text-sm text-destructive">{draftError}</p>
                 )}
 
                 <div className="pt-4 flex gap-3">
                   <Button
+                    size="lg"
                     onClick={handleSaveDraft}
                     disabled={isUploading || !draftPersonId || !draftDate}
-                    className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                    className="w-full"
                   >
                     {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Report
                   </Button>
-                  <Button variant="ghost" onClick={handleCancelDraft} disabled={isUploading} className="h-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10">
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    onClick={handleCancelDraft}
+                    disabled={isUploading}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -464,14 +430,14 @@ export const ReportsManager = () => {
         {/* Header Area */}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-display font-bold text-zinc-900 dark:text-white mb-2">Lab Reports</h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-lg">Review and organize your medical history.</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Lab Reports</h1>
+            <p className="text-muted-foreground text-lg">Review and organize your medical history.</p>
           </div>
         </div>
 
         {/* Action: Dropzone */}
         {role === "owner" && (
-          <div className="group relative rounded-3xl border-2 border-dashed border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+          <div className="group relative rounded-2xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:bg-muted/50">
             <FileDropzone onFileSelect={handleFileSelect} />
           </div>
         )}
@@ -479,12 +445,14 @@ export const ReportsManager = () => {
         {/* List */}
         <div className="grid gap-4">
           {reports.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 rounded-3xl border border-zinc-200 dark:border-white/5 bg-white/40 dark:bg-white/[0.02]">
-              <div className="h-16 w-16 bg-zinc-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mb-4 text-zinc-400 dark:text-zinc-600">
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-border bg-muted/30">
+              <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mb-4 text-muted-foreground">
                 <FileText className="h-8 w-8" />
               </div>
-              <p className="text-zinc-500 font-medium">No reports found.</p>
-              <p className="text-sm text-zinc-600 mt-1">Upload your first report above to start reviewing results.</p>
+              <p className="text-muted-foreground font-medium">No reports found.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Upload your first report above to start reviewing results.
+              </p>
             </div>
           ) : (
             reports.map((report) => {
@@ -500,29 +468,30 @@ export const ReportsManager = () => {
                       : "draft";
 
               return (
-                <Card key={report.id} className="group overflow-hidden bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:border-indigo-200 dark:hover:border-white/20 hover:scale-[1.01] transition-all duration-300 backdrop-blur-md shadow-sm dark:shadow-none">
+                <Card key={report.id} className="group overflow-hidden">
                   <div className="flex flex-wrap items-center gap-5 p-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/10 dark:from-indigo-500/20 to-purple-500/10 dark:to-purple-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-white/5 shadow-inner">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground border border-border">
                       <FileText className="h-6 w-6" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-zinc-900 dark:text-white text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                      <h3 className="font-semibold text-foreground text-lg">
                         {peopleById.get(report.person_id) ?? "Unknown"}
                       </h3>
-                      <div className="flex items-center gap-3 text-sm text-zinc-500 mt-1">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5" />
                           {new Date(report.report_date).toLocaleDateString()}
                         </div>
-                        {report.source && <span className="w-1 h-1 bg-zinc-700 rounded-full" />}
+                        {report.source && <span className="w-1 h-1 bg-muted-foreground rounded-full" />}
                         {report.source && <span>{report.source}</span>}
                       </div>
                       {notice && (
                         <p
-                          className={`mt-2 text-xs ${notice.tone === "error"
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-emerald-600 dark:text-emerald-400"
-                            }`}
+                          className={`mt-2 text-xs ${
+                            notice.tone === "error"
+                              ? "text-destructive"
+                              : "text-primary"
+                          }`}
                         >
                           {notice.message}
                         </p>
@@ -535,7 +504,6 @@ export const ReportsManager = () => {
                           size="sm"
                           onClick={() => handleExtractReport(report.id)}
                           disabled={isExtracting}
-                          className="border-indigo-200 dark:border-white/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-white/10"
                         >
                           {isExtracting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Retry extraction
@@ -546,7 +514,6 @@ export const ReportsManager = () => {
                           variant="outline"
                           size="sm"
                           asChild
-                          className="border-amber-200 text-amber-600 hover:bg-amber-50"
                         >
                           <a href={`/reports/${report.id}/review`}>Review</a>
                         </Button>
@@ -556,31 +523,21 @@ export const ReportsManager = () => {
                           variant="outline"
                           size="sm"
                           asChild
-                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                         >
                           <a href={`/reports/${report.id}/review`}>View</a>
                         </Button>
                       )}
-                      {role === "owner" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setReportToDelete(report);
-                            setDeleteError(null);
-                          }}
-                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                        >
-                          Delete
-                        </Button>
-                      )}
-                      <Badge className={`
-                        h-8 px-3 rounded-lg text-sm font-medium border-0
-                        ${report.status === 'final' ? 'bg-emerald-500/10 text-emerald-400' :
-                          report.status === 'review_required' ? 'bg-amber-500/10 text-amber-400' :
-                            report.status === 'extraction_failed' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-500/10 text-zinc-400'
+                      <Badge
+                        variant={
+                          report.status === "extraction_failed"
+                            ? "destructive"
+                            : report.status === "final"
+                              ? "secondary"
+                              : report.status === "review_required"
+                                ? "outline"
+                                : "secondary"
                         }
-                      `}>
+                      >
                         {statusLabel}
                       </Badge>
                     </div>
@@ -592,57 +549,6 @@ export const ReportsManager = () => {
         </div>
 
       </div>
-      {reportToDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="presentation"
-          onClick={() => {
-            if (!deletingReportId) {
-              setReportToDelete(null);
-              setDeleteError(null);
-            }
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-report-title"
-            className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="delete-report-title" className="text-xl font-semibold text-zinc-900">
-              Delete report?
-            </h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              This hides the report and its results. You can restore it later when cleanup tooling exists.
-            </p>
-            {deleteError && (
-              <p className="mt-3 text-sm text-rose-600">
-                {deleteError}
-              </p>
-            )}
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setReportToDelete(null);
-                  setDeleteError(null);
-                }}
-                disabled={deletingReportId === reportToDelete.id}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteReport}
-                disabled={deletingReportId === reportToDelete.id}
-              >
-                {deletingReportId === reportToDelete.id ? "Deleting..." : "Delete report"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </DashboardLayout>
   );
 };

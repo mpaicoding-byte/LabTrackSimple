@@ -9,6 +9,7 @@ import { useSession } from "@/features/auth/SessionProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingState } from "@/components/ui/loading-state";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -82,59 +83,40 @@ export const AuthScreen = () => {
 
   // Show loading while checking session
   if (sessionLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-background" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-background to-background" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse" />
-
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-500 relative z-10" />
-      </div>
-    );
+    return <LoadingState fullScreen size="lg" />;
   }
 
   // If already logged in, show redirecting message
   if (session) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-background" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-background to-background" />
-
-        <div className="text-center relative z-10 glass p-8 rounded-2xl">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-500 mx-auto mb-4" />
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Redirecting to dashboard...</p>
-        </div>
-      </div>
+      <LoadingState
+        fullScreen
+        size="md"
+        message="Redirecting to dashboard..."
+      />
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Aurora Background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/20 rounded-full blur-[120px]" />
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="flex justify-center mb-10">
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/30 text-white">
-              <TestTube2 className="h-8 w-8" />
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <div className="flex justify-center mb-8">
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <TestTube2 className="h-7 w-7" />
             </div>
-            <span className="text-3xl font-display font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-white/70 bg-clip-text text-transparent">LabTrack</span>
+            <span className="text-2xl font-semibold tracking-tight text-foreground">
+              LabTrack
+            </span>
           </div>
         </div>
 
-        <Card className="border-zinc-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl shadow-2xl">
+        <Card>
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl text-zinc-900 dark:text-white font-display">
+            <CardTitle className="text-2xl">
               {mode === "sign-in" ? "Welcome back" : "Create your account"}
             </CardTitle>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               {mode === "sign-in"
                 ? "Sign in to access your lab reports"
                 : "Start tracking your household health data"}
@@ -143,27 +125,23 @@ export const AuthScreen = () => {
 
           <CardContent className="pt-6">
             {/* Mode Toggle */}
-            <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-black/20 rounded-xl mb-8 border border-zinc-200 dark:border-white/5">
-              <button
+            <div className="grid grid-cols-2 gap-2 rounded-md border border-border bg-muted p-1">
+              <Button
                 type="button"
                 onClick={() => setMode("sign-in")}
-                className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-lg transition-all duration-300 ${mode === "sign-in"
-                  ? "bg-white dark:bg-white/10 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg dark:shadow-indigo-500/10 border border-zinc-200 dark:border-white/10"
-                  : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/5"
-                  }`}
+                variant={mode === "sign-in" ? "secondary" : "ghost"}
+                size="sm"
               >
                 Sign in
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setMode("sign-up")}
-                className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-lg transition-all duration-300 ${mode === "sign-up"
-                  ? "bg-white dark:bg-white/10 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg dark:shadow-indigo-500/10 border border-zinc-200 dark:border-white/10"
-                  : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/5"
-                  }`}
+                variant={mode === "sign-up" ? "secondary" : "ghost"}
+                size="sm"
               >
                 Create account
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -171,7 +149,7 @@ export const AuthScreen = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1"
+                  className="text-sm font-medium"
                 >
                   Email
                 </label>
@@ -183,7 +161,6 @@ export const AuthScreen = () => {
                   placeholder="you@example.com"
                   autoComplete="email"
                   required
-                  className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
                 />
               </div>
 
@@ -191,7 +168,7 @@ export const AuthScreen = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1"
+                  className="text-sm font-medium"
                 >
                   Password
                 </label>
@@ -204,19 +181,21 @@ export const AuthScreen = () => {
                     placeholder={mode === "sign-in" ? "Enter your password" : "Create a password"}
                     autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
                     required
-                    className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl pr-10"
+                    className="pr-10"
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />
                     ) : (
                       <Eye className="h-5 w-5" />
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -225,10 +204,10 @@ export const AuthScreen = () => {
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-300">
                   <label
                     htmlFor="household"
-                    className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1"
+                    className="text-sm font-medium"
                   >
                     Household name{" "}
-                    <span className="text-zinc-400 dark:text-zinc-500 font-normal">(optional)</span>
+                    <span className="text-muted-foreground font-normal">(optional)</span>
                   </label>
                   <Input
                     id="household"
@@ -236,7 +215,6 @@ export const AuthScreen = () => {
                     value={householdName}
                     onChange={(e) => setHouseholdName(e.target.value)}
                     placeholder="e.g., The Smith Family"
-                    className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
                   />
                 </div>
               )}
@@ -244,9 +222,9 @@ export const AuthScreen = () => {
               {/* Status Message */}
               {status.message && (
                 <div
-                  className={`p-4 rounded-xl text-sm flex items-center animate-in fade-in duration-300 ${status.type === "error"
-                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  className={`rounded-md border px-4 py-3 text-sm ${status.type === "error"
+                    ? "border-destructive/30 text-destructive"
+                    : "border-border text-muted-foreground"
                     }`}
                 >
                   {status.message}
@@ -257,7 +235,7 @@ export const AuthScreen = () => {
               <Button
                 type="submit"
                 disabled={status.type === "loading"}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/25 border-0 text-base font-semibold"
+                className="w-full"
                 size="lg"
               >
                 {status.type === "loading" ? (
@@ -276,7 +254,7 @@ export const AuthScreen = () => {
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-xs text-zinc-500 mt-8">
+        <p className="text-center text-xs text-muted-foreground mt-8">
           {mode === "sign-up"
             ? "By creating an account, you agree to our terms of service."
             : "Secure authentication powered by Supabase."}

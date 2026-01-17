@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingState } from "@/components/ui/loading-state";
 
 type Notice = {
   tone: "success" | "error";
@@ -12,11 +13,11 @@ type Notice = {
 
 export const ReviewSignInGate = () => (
   <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-    <div className="bg-indigo-50 p-4 rounded-full">
-      <FileText className="w-8 h-8 text-indigo-600" />
+    <div className="bg-muted p-4 rounded-full">
+      <FileText className="w-8 h-8 text-muted-foreground" />
     </div>
     <h2 className="text-xl font-semibold">Please Sign In</h2>
-    <p className="text-zinc-500 max-w-sm text-center">
+    <p className="text-muted-foreground max-w-sm text-center">
       You need to be signed in to review results.
     </p>
     <Button asChild>
@@ -27,7 +28,7 @@ export const ReviewSignInGate = () => (
 
 export const ReviewLoadingState = () => (
   <div className="flex h-[50vh] items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+    <LoadingState />
   </div>
 );
 
@@ -62,18 +63,24 @@ export const ReviewHeader = ({
   reportDate,
   notice,
   previewUrl,
+  canDelete = false,
+  deleteDisabled = false,
+  onDelete,
 }: {
   personName: string | null;
   reportDate: string | null;
   notice: Notice | null;
   previewUrl: string | null;
+  canDelete?: boolean;
+  deleteDisabled?: boolean;
+  onDelete?: () => void;
 }) => (
   <div className="flex flex-wrap items-center justify-between gap-4">
     <div>
-      <h1 className="text-3xl font-display font-bold text-zinc-900">
+      <h1 className="text-3xl font-bold text-foreground">
         Review Results
       </h1>
-      <p className="text-zinc-500">
+      <p className="text-muted-foreground">
         {personName ? `${personName} · ` : ""}
         {reportDate ? new Date(reportDate).toLocaleDateString() : ""}
       </p>
@@ -82,11 +89,21 @@ export const ReviewHeader = ({
       {notice && (
         <span
           className={`text-sm ${
-            notice.tone === "error" ? "text-rose-600" : "text-emerald-600"
+            notice.tone === "error" ? "text-destructive" : "text-primary"
           }`}
         >
           {notice.message}
         </span>
+      )}
+      {canDelete && (
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleteDisabled}
+        >
+          Delete report
+        </Button>
       )}
       {previewUrl && (
         <Button variant="outline" size="sm" asChild>
