@@ -82,7 +82,7 @@ Rationale: `user_id` links a person to a login when available, while still allow
 #### `extraction_runs`
 - `id uuid pk`
 - `lab_report_id uuid not null references lab_reports(id)`
-- `status text not null default 'running'` -- `running | ready | failed | confirmed | rejected` (rejected = "Not correct")
+- `status text not null default 'running'` -- `running | ready | failed | confirmed | rejected` (legacy; no UI action)
 - `started_at timestamptz not null default now()`
 - `completed_at timestamptz null`
 - `error text null`
@@ -117,7 +117,7 @@ Rationale: `user_id` links a person to a login when available, while still allow
 - Use CHECK constraints (or enums) for status fields to prevent invalid values:
   - `lab_reports.status`: `draft | review_required | final | extraction_failed`
   - `lab_artifacts.status`: `pending | ready | failed`
-  - `extraction_runs.status`: `running | ready | failed | confirmed | rejected` (rejected = "Not correct")
+  - `extraction_runs.status`: `running | ready | failed | confirmed | rejected` (legacy; no UI action)
 - `people.gender`: `female | male` (or null)
 - `household_members`: UNIQUE constraint on `(household_id, user_id)` to prevent duplicate memberships.
 - `household_members`: UNIQUE partial constraint on `(household_id) WHERE role = 'owner'` to ensure a single owner per household.
@@ -193,16 +193,16 @@ Note: for child tables, exclude rows whose parent is soft-deleted (via views or 
 ### 6.1 Report Creation
 - Form: `person_id`, `report_date`, `source`.
 - Artifact upload list with status.
-- Manual report path (no artifact): create `lab_reports` with `status = review_required`, create an `extraction_runs` row with `status = ready`, and set `current_extraction_run_id`.
+- Manual test entry happens during review; there is no separate manual report creation flow.
 
 ### 6.2 Extraction Review
-- Always-editable grid for owners (`name_raw`, `value_raw`, `unit_raw`, `value_num`, `details_raw`); members are view-only.
-- Edits and new rows are saved when "Confirm & Save" is clicked.
-- Primary action: "Confirm & Save"; secondary action: "Not correct" (keeps `review_required`).
-- "Not correct" updates `extraction_runs.status = rejected` for the current run.
-- "Add result" appends a new manual row (available for manual or uploaded reports).
-- Inline artifact preview (PDF/image) and download link.
-- For uploaded reports, show guidance to create a manual report if a test is not in the document.
+- Always-editable grid for owners during review (`name_raw`, `value_raw`, `unit_raw`, `value_num`, `details_raw`); members are view-only.
+- Final reports are view-only until the owner selects **Edit** to enter draft mode (with Discard draft).
+- Edits and new rows are saved when "Review & confirm" is clicked.
+- Primary action: "Review & confirm".
+- "Add test" appends a new manual row during review.
+- Preview document button (opens the signed artifact URL).
+- For uploaded reports, show guidance to add missing tests from the document during review.
 - Flag ambiguous parses (e.g., mixed type or non-numeric values in numeric context) with a prompt to edit or keep raw.
 
 ### 6.3 Trends

@@ -31,7 +31,6 @@ vi.mock("../useReviewData", () => ({
     loading: false,
     error: null,
     previewUrl: null,
-    previewKind: null,
     reload: vi.fn(),
   })),
 }));
@@ -45,8 +44,8 @@ const useReviewActionsMock = vi.fn(() => ({
   handleAddRow: vi.fn(),
   handleNewRowChange: vi.fn(),
   handleRemoveNewRow: vi.fn(),
+  handleDiscardDraft: vi.fn(),
   handleCommit: vi.fn(),
-  handleNotCorrect: vi.fn(),
 }));
 
 vi.mock("../useReviewActions", () => ({

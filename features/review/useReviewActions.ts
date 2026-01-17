@@ -96,6 +96,11 @@ export const useReviewActions = ({
     setNewRows((prev) => prev.filter((row) => row.id !== rowId));
   };
 
+  const handleDiscardDraft = () => {
+    setDrafts({});
+    setNewRows([]);
+  };
+
   const handleCommit = async () => {
     if (!runId || !reportId) {
       setNotice({ tone: "error", message: "Missing report context." });
@@ -209,34 +214,6 @@ export const useReviewActions = ({
     setCommitSaving(false);
   };
 
-  const handleNotCorrect = async () => {
-    if (!runId || !reportId) {
-      setNotice({ tone: "error", message: "Missing report context." });
-      return;
-    }
-
-    setCommitSaving(true);
-    const { error: runError } = await supabase
-      .from("extraction_runs")
-      .update({ status: "rejected" })
-      .eq("id", runId);
-
-    if (runError) {
-      setNotice({ tone: "error", message: runError.message });
-    } else {
-      await supabase
-        .from("lab_reports")
-        .update({ status: "review_required" })
-        .eq("id", reportId);
-      setNotice({
-        tone: "success",
-        message: "Marked as not correct. You can retry extraction.",
-      });
-    }
-
-    setCommitSaving(false);
-  };
-
   return {
     drafts,
     newRows,
@@ -246,7 +223,7 @@ export const useReviewActions = ({
     handleAddRow,
     handleNewRowChange,
     handleRemoveNewRow,
+    handleDiscardDraft,
     handleCommit,
-    handleNotCorrect,
   };
 };

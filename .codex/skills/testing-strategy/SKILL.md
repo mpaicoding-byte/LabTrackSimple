@@ -26,6 +26,7 @@ Use this skill when running or troubleshooting tests in this repo. Tests must be
 
 ## UI Verification (Mandatory)
 - Any UI change requires verification using the Chrome DevTools MCP.
+- Save verification screenshots in `docs/screenshots` only, using `<scenario>_<version>.png` (e.g. `login_001.png`).
 
 ## Unit / Component
 - Unit: `npm run test` (node --test).

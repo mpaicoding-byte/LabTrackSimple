@@ -3,14 +3,12 @@
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Notice = {
   tone: "success" | "error";
   message: string;
 };
-
-type PreviewKind = "pdf" | "image" | null;
 
 export const ReviewSignInGate = () => (
   <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
@@ -53,7 +51,7 @@ export const ReviewEmptyState = () => (
     <Card className="max-w-2xl">
       <CardHeader>
         <CardTitle>Review Results</CardTitle>
-        <CardDescription>No results to confirm yet.</CardDescription>
+        <CardDescription>No results to review yet.</CardDescription>
       </CardHeader>
     </Card>
   </div>
@@ -63,10 +61,12 @@ export const ReviewHeader = ({
   personName,
   reportDate,
   notice,
+  previewUrl,
 }: {
   personName: string | null;
   reportDate: string | null;
   notice: Notice | null;
+  previewUrl: string | null;
 }) => (
   <div className="flex flex-wrap items-center justify-between gap-4">
     <div>
@@ -88,6 +88,13 @@ export const ReviewHeader = ({
           {notice.message}
         </span>
       )}
+      {previewUrl && (
+        <Button variant="outline" size="sm" asChild>
+          <a href={previewUrl} target="_blank" rel="noreferrer">
+            Preview document
+          </a>
+        </Button>
+      )}
       <Button variant="ghost" size="sm" asChild>
         <a href="/reports" className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
@@ -96,41 +103,4 @@ export const ReviewHeader = ({
       </Button>
     </div>
   </div>
-);
-
-export const ReviewPreviewCard = ({
-  previewUrl,
-  previewKind,
-}: {
-  previewUrl: string | null;
-  previewKind: PreviewKind;
-}) => (
-  <Card className="border-zinc-200">
-    <CardHeader>
-      <CardTitle>Artifact preview</CardTitle>
-      <CardDescription>Cross-check values with the original document.</CardDescription>
-    </CardHeader>
-    <CardContent>
-      {previewUrl ? (
-        previewKind === "pdf" ? (
-          <iframe
-            title="Artifact preview"
-            src={previewUrl}
-            className="h-[420px] w-full rounded-xl border"
-          />
-        ) : (
-          <img
-            src={previewUrl}
-            alt="Artifact preview"
-            className="h-[420px] w-full rounded-xl border object-cover"
-          />
-        )
-      ) : (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 py-10 text-sm text-zinc-500">
-          <FileText className="h-6 w-6" />
-          No artifact available for preview.
-        </div>
-      )}
-    </CardContent>
-  </Card>
 );

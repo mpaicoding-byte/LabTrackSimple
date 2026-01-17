@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -13,7 +13,6 @@ import {
   ReviewErrorState,
   ReviewHeader,
   ReviewLoadingState,
-  ReviewPreviewCard,
   ReviewSignInGate,
 } from "./ReviewLayoutPieces";
 import { useReviewActions } from "./useReviewActions";
@@ -46,7 +45,6 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     loading,
     error,
     previewUrl,
-    previewKind,
   } = useReviewData(resolvedReportId);
 
   const [notice, setNotice] = useState<ReportNotice | null>(null);
@@ -65,8 +63,8 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     handleAddRow,
     handleNewRowChange,
     handleRemoveNewRow,
+    handleDiscardDraft,
     handleCommit,
-    handleNotCorrect,
   } = useReviewActions({
     supabase,
     reportId: resolvedReportId,
@@ -75,17 +73,30 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     rows,
     setRows,
     setNotice,
-    onCommitSuccess: () =>
-      setReport((prev) => (prev ? { ...prev, status: "final" } : prev)),
+    onCommitSuccess: () => {
+      setReport((prev) => (prev ? { ...prev, status: "final" } : prev));
+      setIsEditingFinal(false);
+    },
   });
 
   const totalRows = rows.length + newRows.length;
+  const isFinal = report?.status === "final";
+  const [isEditingFinal, setIsEditingFinal] = useState(false);
+  const canEdit = role === "owner" && (!isFinal || isEditingFinal);
+  const canEnterEdit = role === "owner" && isFinal && !isEditingFinal;
+  const canDiscardDraft = role === "owner" && isFinal && isEditingFinal;
 
   const canCommit =
-    role === "owner" &&
+    canEdit &&
     !commitSaving &&
     totalRows > 0 &&
     Boolean(runId);
+
+  useEffect(() => {
+    if (!isFinal && isEditingFinal) {
+      setIsEditingFinal(false);
+    }
+  }, [isFinal, isEditingFinal]);
 
   if (!sessionLoading && !session) {
     return wrapWithBoundary(
@@ -126,23 +137,28 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
           personName={personName}
           reportDate={report?.report_date ?? null}
           notice={notice}
+          previewUrl={previewUrl}
         />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="grid gap-6">
           <Card className="border-zinc-200">
             <CardHeader>
               <CardTitle>Extracted results</CardTitle>
               <CardDescription>
-                {role === "owner"
-                  ? "Quickly confirm the extracted values or make edits."
-                  : "Review-only access. Ask an owner to confirm."}
+                {isFinal
+                  ? isEditingFinal
+                    ? "Draft mode is active. Review updates and confirm when ready."
+                    : "This report is confirmed. Select edit to make changes."
+                  : role === "owner"
+                    ? "Review the extracted values and add missing tests."
+                    : "Review-only access. Ask an owner to confirm."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {totalRows === 0 ? (
                 <p className="text-sm text-zinc-600">No results yet.</p>
               ) : null}
-              {hasDirty && (
+              {hasDirty && canEdit && (
                 <p className="text-xs text-amber-600">
                   Changes are saved when you confirm.
                 </p>
@@ -151,16 +167,15 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
                 rows={rows}
                 drafts={drafts}
                 newRows={newRows}
-                readOnly={role !== "owner"}
+                readOnly={!canEdit}
                 onExistingDraftChange={handleExistingDraftChange}
                 onNewRowChange={handleNewRowChange}
                 onRemoveNewRow={handleRemoveNewRow}
               />
 
-              {role === "owner" && previewUrl && (
+              {canEdit && previewUrl && (
                 <p className="text-xs text-zinc-500">
-                  Tip: Add manual results only if they appear in this uploaded report. If a test
-                  is not in the document, create a manual report instead.
+                  Tip: Add missing tests only if they appear in this uploaded report.
                 </p>
               )}
 
@@ -169,30 +184,40 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
                   {rows.length} results · {editedCount} edited
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {role === "owner" && (
-                    <Button variant="outline" onClick={handleAddRow}>
-                      Add result
+                  {canEnterEdit && (
+                    <Button onClick={() => setIsEditingFinal(true)}>
+                      Edit
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    onClick={handleNotCorrect}
-                    disabled={commitSaving || role !== "owner"}
-                  >
-                    Not correct
-                  </Button>
-                  <Button onClick={handleCommit} disabled={!canCommit}>
-                    {commitSaving && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Confirm & Save
-                  </Button>
+                  {canEdit && (
+                    <Button variant="outline" onClick={handleAddRow}>
+                      Add test
+                    </Button>
+                  )}
+                  {canDiscardDraft && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleDiscardDraft();
+                        setNotice(null);
+                        setIsEditingFinal(false);
+                      }}
+                    >
+                      Discard draft
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button onClick={handleCommit} disabled={!canCommit}>
+                      {commitSaving && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Review & confirm
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <ReviewPreviewCard previewUrl={previewUrl} previewKind={previewKind} />
         </div>
       </div>
     </DashboardLayout>

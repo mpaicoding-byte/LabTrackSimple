@@ -37,7 +37,7 @@ test.describe("report extraction", () => {
       .getByRole("heading", { name: new RegExp(newName, "i") })
       .locator("xpath=ancestor::div[contains(@class,'group')][1]");
 
-    await expect(reportCard.getByText(/needs confirmation/i)).toBeVisible({
+    await expect(reportCard.getByText(/review required/i)).toBeVisible({
       timeout: 30_000,
     });
   });

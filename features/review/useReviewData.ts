@@ -17,8 +17,6 @@ type ReportRow = {
   current_extraction_run_id: string | null;
 };
 
-type PreviewKind = "pdf" | "image" | null;
-
 export const useReviewData = (reportId?: string) => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const { session, loading: sessionLoading } = useSession();
@@ -32,7 +30,6 @@ export const useReviewData = (reportId?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewKind, setPreviewKind] = useState<PreviewKind>(null);
 
   const loadReviewData = useCallback(async () => {
     if (!userId) return;
@@ -105,7 +102,7 @@ export const useReviewData = (reportId?: string) => {
 
       const { data: artifact } = await supabase
         .from("lab_artifacts")
-        .select("object_path, kind")
+        .select("object_path")
         .eq("lab_report_id", reportId)
         .eq("status", "ready")
         .is("deleted_at", null)
@@ -119,10 +116,8 @@ export const useReviewData = (reportId?: string) => {
           .createSignedUrl(artifact.object_path, 60 * 30);
 
         setPreviewUrl(signed?.signedUrl ?? null);
-        setPreviewKind(artifact.kind === "pdf" ? "pdf" : "image");
       } else {
         setPreviewUrl(null);
-        setPreviewKind(null);
       }
     } catch (loadError) {
       const message =
@@ -153,7 +148,6 @@ export const useReviewData = (reportId?: string) => {
     loading,
     error,
     previewUrl,
-    previewKind,
     reload: loadReviewData,
   };
 };

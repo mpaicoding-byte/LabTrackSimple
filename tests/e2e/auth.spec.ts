@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
+import { ensureUserProfile } from "./ensureUserProfile";
 
 const requireCredentials = () => {
   if (!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD) {
@@ -38,11 +39,17 @@ const createSigninUser = async () => {
   const password = process.env.E2E_PASSWORD ?? "Passw0rd!234";
   const email = `e2e-signin-${Date.now()}@example.com`;
 
-  await admin.auth.admin.createUser({
+  const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
   });
+
+  if (error || !data.user) {
+    throw new Error(`Failed to create auth user for ${email}: ${error?.message ?? "unknown error"}`);
+  }
+
+  await ensureUserProfile(admin, data.user.id, email);
 
   return { email, password };
 };
@@ -113,6 +120,8 @@ test.describe("auth flow", () => {
       await page.waitForURL("**/people", { timeout: 30_000 });
     }
 
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto("/people");
     await expect(signedInLabel).toBeVisible({ timeout: 30_000 });
 
     await page.waitForLoadState("networkidle");

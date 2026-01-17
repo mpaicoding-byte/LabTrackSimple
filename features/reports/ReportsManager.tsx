@@ -43,8 +43,8 @@ const wrapWithBoundary = (content: React.ReactNode) => (
 
 export const ReportsManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const router = useRouter();
   const { session, loading: sessionLoading } = useSession();
+  const router = useRouter();
 
   // Data State
   const [householdId, setHouseholdId] = useState<string | null>(null);
@@ -55,7 +55,6 @@ export const ReportsManager = () => {
 
   // UI State
   const [draftFile, setDraftFile] = useState<File | null>(null);
-  const [isManualDraft, setIsManualDraft] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [extractingReports, setExtractingReports] = useState<Record<string, boolean>>({});
   const [reportNotices, setReportNotices] = useState<Record<string, ReportNotice>>({});
@@ -154,7 +153,6 @@ export const ReportsManager = () => {
 
   const handleFileSelect = (file: File) => {
     setDraftFile(file);
-    setIsManualDraft(false);
     // Pre-fill date with today if empty
     if (!draftDate) {
       setDraftDate(new Date().toISOString().split('T')[0]);
@@ -163,30 +161,27 @@ export const ReportsManager = () => {
 
   const handleCancelDraft = () => {
     setDraftFile(null);
-    setIsManualDraft(false);
     setDraftPersonId("");
     setDraftDate("");
-  };
-
-  const handleStartManualDraft = () => {
-    setIsManualDraft(true);
-    if (!draftDate) {
-      setDraftDate(new Date().toISOString().split("T")[0]);
-    }
   };
 
   const handleSaveDraft = async () => {
     if (!draftFile || !householdId || !draftPersonId || !draftDate) return;
 
+    const fileToUpload = draftFile;
+    const reportPersonId = draftPersonId;
+    const reportDate = draftDate;
+
     setIsUploading(true);
+    let reportId: string | null = null;
     try {
       // 1. Create Report first
       const { data: report, error: reportError } = await supabase
         .from("lab_reports")
         .insert({
           household_id: householdId,
-          person_id: draftPersonId,
-          report_date: draftDate,
+          person_id: reportPersonId,
+          report_date: reportDate,
           source: "Uploaded via Web",
           status: "draft"
         })
@@ -194,11 +189,20 @@ export const ReportsManager = () => {
         .single();
 
       if (reportError) throw reportError;
+      reportId = report.id;
 
       // 2. Prepare artifact metadata
       const artifactId = buildArtifactId();
-      const fileExt = draftFile.name.split('.').pop() || 'bin';
+      const fileExt = fileToUpload.name.split('.').pop() || 'bin';
       const objectPath = `${householdId}/${report.id}/${artifactId}.${fileExt}`;
+
+      setReports(prev => [report as ReportRow, ...prev]);
+      setReportNotice(report.id, {
+        tone: "success",
+        message: "Uploading report...",
+      });
+      handleCancelDraft();
+      router.replace("/reports");
 
       // 3. Create Artifact Record FIRST (required by storage RLS policy)
       // Status is "pending" until upload completes
@@ -219,7 +223,7 @@ export const ReportsManager = () => {
       // 4. NOW upload the file (RLS policy can find the artifact record)
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_ID)
-        .upload(objectPath, draftFile);
+        .upload(objectPath, fileToUpload);
 
       if (uploadError) {
         // If upload fails, clean up the artifact record
@@ -233,9 +237,6 @@ export const ReportsManager = () => {
         .update({ status: "ready" })
         .eq("id", artifactId);
 
-      // Success - Update Local State
-      setReports(prev => [report as ReportRow, ...prev]);
-      handleCancelDraft();
       setReportNotice(report.id, {
         tone: "success",
         message: "Upload complete. Running extraction...",
@@ -244,60 +245,12 @@ export const ReportsManager = () => {
 
     } catch (e) {
       console.error("Upload failed", e);
-      alert("Failed to upload report. Check console.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleCreateManualReport = async () => {
-    if (!householdId || !draftPersonId || !draftDate || !session?.user.id) return;
-
-    setIsUploading(true);
-    try {
-      const { data: report, error: reportError } = await supabase
-        .from("lab_reports")
-        .insert({
-          household_id: householdId,
-          person_id: draftPersonId,
-          report_date: draftDate,
-          source: "Manual entry",
-          status: "review_required",
-        })
-        .select()
-        .single();
-
-      if (reportError) throw reportError;
-
-      const { data: run, error: runError } = await supabase
-        .from("extraction_runs")
-        .insert({
-          lab_report_id: report.id,
-          status: "ready",
-          created_by: session.user.id,
-        })
-        .select("id")
-        .single();
-
-      if (runError) throw runError;
-
-      const { error: updateError } = await supabase
-        .from("lab_reports")
-        .update({ current_extraction_run_id: run.id })
-        .eq("id", report.id);
-
-      if (updateError) throw updateError;
-
-      setReports((prev) => [report as ReportRow, ...prev]);
-      setReportNotice(report.id, {
-        tone: "success",
-        message: "Manual report created. Add results and confirm.",
-      });
-      handleCancelDraft();
-      router.push(`/reports/${report.id}/review`);
-    } catch (e) {
-      console.error("Manual report creation failed", e);
-      alert("Failed to create manual report. Check console.");
+      if (reportId) {
+        const message = e instanceof Error ? e.message : "Upload failed.";
+        setReportNotice(reportId, { tone: "error", message });
+      } else {
+        alert("Failed to upload report. Check console.");
+      }
     } finally {
       setIsUploading(false);
     }
@@ -382,17 +335,7 @@ export const ReportsManager = () => {
             <p className="text-zinc-500 dark:text-zinc-400">{draftFile.name} ({Math.round(draftFile.size / 1024)} KB)</p>
           </header>
 
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Preview Area (Simplified) */}
-            <Card className="flex items-center justify-center bg-zinc-100 dark:bg-black/20 border-zinc-200 dark:border-white/10 p-12 aspect-[3/4]">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-zinc-200 dark:border-transparent">
-                  <FileText className="h-10 w-10 text-zinc-400 dark:text-white/50" />
-                </div>
-                <p className="text-sm text-zinc-500">Preview not available</p>
-              </div>
-            </Card>
-
+          <div className="grid gap-8">
             <Card className="bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 backdrop-blur-xl">
               <CardHeader>
                 <CardTitle className="text-zinc-900 dark:text-white">Report Details</CardTitle>
@@ -451,91 +394,6 @@ export const ReportsManager = () => {
     );
   }
 
-  // View: Manual Draft Mode (Overlay)
-  if (isManualDraft) {
-    return wrapWithBoundary(
-      <DashboardLayout>
-        <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <header className="mb-8">
-            <h1 className="text-3xl font-display font-bold text-zinc-900 dark:text-white mb-2">
-              New Manual Report
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400">
-              Track results without uploading a document.
-            </p>
-          </header>
-
-          <Card className="bg-white/80 dark:bg-white/5 border-zinc-200 dark:border-white/10 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="text-zinc-900 dark:text-white">Report Details</CardTitle>
-              <CardDescription className="text-zinc-500 dark:text-zinc-400">
-                Who is this report for?
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Person
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {people.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setDraftPersonId(p.id)}
-                      className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition-all duration-300 ${
-                        draftPersonId === p.id
-                          ? "border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 shadow-lg shadow-indigo-500/10"
-                          : "border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
-                      }`}
-                    >
-                      <User className="h-4 w-4" />
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label
-                  htmlFor="report-date"
-                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                >
-                  Report date
-                </label>
-                <Input
-                  id="report-date"
-                  aria-label="Report date"
-                  type="date"
-                  value={draftDate}
-                  onChange={(e) => setDraftDate(e.target.value)}
-                  className="bg-white dark:bg-black/20 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 h-12 rounded-xl"
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleCancelDraft}
-                  disabled={isUploading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateManualReport}
-                  disabled={isUploading || !draftPersonId || !draftDate}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white"
-                >
-                  {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create report
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   // View: Dashboard List
   return wrapWithBoundary(
     <DashboardLayout>
@@ -547,15 +405,6 @@ export const ReportsManager = () => {
             <h1 className="text-3xl font-display font-bold text-zinc-900 dark:text-white mb-2">Lab Reports</h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-lg">Review and organize your medical history.</p>
           </div>
-          {role === "owner" && (
-            <Button
-              variant="outline"
-              onClick={handleStartManualDraft}
-              className="border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-white/10"
-            >
-              Create manual report
-            </Button>
-          )}
         </div>
 
         {/* Action: Dropzone */}
@@ -573,7 +422,7 @@ export const ReportsManager = () => {
                 <FileText className="h-8 w-8" />
               </div>
               <p className="text-zinc-500 font-medium">No reports found.</p>
-              <p className="text-sm text-zinc-600 mt-1">Upload your first report above, or create a manual report.</p>
+              <p className="text-sm text-zinc-600 mt-1">Upload your first report above to start reviewing results.</p>
             </div>
           ) : (
             reports.map((report) => {
@@ -581,7 +430,7 @@ export const ReportsManager = () => {
               const isExtracting = Boolean(extractingReports[report.id]);
               const statusLabel =
                 report.status === "review_required"
-                  ? "needs confirmation"
+                  ? "review required"
                   : report.status === "final"
                     ? "final"
                     : report.status === "extraction_failed"
@@ -638,6 +487,16 @@ export const ReportsManager = () => {
                           className="border-amber-200 text-amber-600 hover:bg-amber-50"
                         >
                           <a href={`/reports/${report.id}/review`}>Review</a>
+                        </Button>
+                      )}
+                      {report.status === "final" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                        >
+                          <a href={`/reports/${report.id}/review`}>View</a>
                         </Button>
                       )}
                       <Badge className={`

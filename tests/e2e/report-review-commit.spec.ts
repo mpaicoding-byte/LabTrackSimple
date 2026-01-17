@@ -151,7 +151,7 @@ test.describe("report review + confirm", () => {
       .getByRole("heading", { name: new RegExp(newName, "i") })
       .first()
       .locator("xpath=ancestor::div[contains(@class,'group')][1]");
-    await expect(refreshedCard.getByText(/needs confirmation/i)).toBeVisible();
+    await expect(refreshedCard.getByText(/review required/i)).toBeVisible();
 
     const { data: beforeCommit } = await admin
       .from("lab_results")
@@ -171,11 +171,23 @@ test.describe("report review + confirm", () => {
     });
     await expect(page.locator("tbody tr").first()).toBeVisible({ timeout: 30_000 });
 
-    const confirmButton = page.getByRole("button", { name: /confirm & save/i });
+    const confirmButton = page.getByRole("button", { name: /review & confirm/i });
     await expect(confirmButton).toBeEnabled();
     await confirmButton.click();
 
     await expect(page.getByText(/report confirmed/i)).toBeVisible({ timeout: 30_000 });
+
+    const editButton = page.getByRole("button", { name: /^edit$/i });
+    await expect(editButton).toBeVisible();
+    await editButton.click();
+
+    await expect(page.getByRole("button", { name: /discard draft/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /add test/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /review & confirm/i })).toBeEnabled();
+
+    await page.getByRole("button", { name: /discard draft/i }).click();
+    await expect(page.getByRole("button", { name: /^edit$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /add test/i })).toHaveCount(0);
 
     const { data: afterConfirm } = await admin
       .from("lab_results")
@@ -303,93 +315,6 @@ test.describe("report review + confirm", () => {
     await expect(page.getByRole("heading", { name: /review results/i })).toBeVisible();
     await expect(page.getByText(/calcium/i)).toBeVisible();
 
-    await expect(page.getByRole("button", { name: /confirm & save/i })).toBeDisabled();
-    await expect(page.getByRole("button", { name: /not correct/i })).toBeDisabled();
-  });
-
-  test("owner can mark extraction as not correct", async ({ page }) => {
-    requireCredentials();
-    const admin = getAdminClient();
-
-    const ownerEmail = process.env.E2E_EMAIL ?? "";
-    const ownerUser = await findUserByEmail(admin, ownerEmail);
-    expect(ownerUser).toBeTruthy();
-
-    const { data: ownerMembership } = await admin
-      .from("household_members")
-      .select("household_id")
-      .eq("user_id", ownerUser?.id ?? "")
-      .eq("role", "owner")
-      .maybeSingle();
-
-    const { data: person } = await admin
-      .from("people")
-      .insert({
-        household_id: ownerMembership?.household_id,
-        name: `Not Correct Person ${Date.now()}`,
-      })
-      .select("id")
-      .maybeSingle();
-
-    const runId = crypto.randomUUID();
-    const { data: report } = await admin
-      .from("lab_reports")
-      .insert({
-        household_id: ownerMembership?.household_id,
-        person_id: person?.id,
-        report_date: "2024-04-01",
-        source: "Seeded",
-        status: "review_required",
-      })
-      .select("id")
-      .maybeSingle();
-
-    await admin.from("extraction_runs").insert({
-      id: runId,
-      lab_report_id: report?.id,
-      status: "ready",
-      created_by: ownerUser?.id,
-    });
-
-    await admin
-      .from("lab_reports")
-      .update({ current_extraction_run_id: runId })
-      .eq("id", report?.id ?? "");
-
-    await admin.from("lab_results").insert({
-      lab_report_id: report?.id,
-      person_id: person?.id,
-      extraction_run_id: runId,
-      name_raw: "Sodium",
-      value_raw: "140",
-      unit_raw: "mmol/L",
-      value_num: 140,
-      details_raw: null,
-      is_active: true,
-    });
-
-    await page.goto(`/reports/${report?.id}/review`);
-    await expect(page.getByRole("heading", { name: /review results/i })).toBeVisible();
-    await expect(page.getByLabel("Name")).toHaveValue(/sodium/i);
-
-    const notCorrectButton = page.getByRole("button", { name: /not correct/i });
-    await expect(notCorrectButton).toBeEnabled();
-    await notCorrectButton.click();
-
-    await expect(page.getByText(/marked as not correct/i)).toBeVisible();
-
-    const { data: updatedRun } = await admin
-      .from("extraction_runs")
-      .select("status")
-      .eq("id", runId)
-      .maybeSingle();
-    expect(updatedRun?.status).toBe("rejected");
-
-    const { data: updatedReport } = await admin
-      .from("lab_reports")
-      .select("status")
-      .eq("id", report?.id ?? "")
-      .maybeSingle();
-    expect(updatedReport?.status).toBe("review_required");
+    await expect(page.getByRole("button", { name: /review & confirm/i })).toHaveCount(0);
   });
 });

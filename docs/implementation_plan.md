@@ -133,15 +133,16 @@ Status: In progress (see `docs/current specs/simple-review-flow/`).
 ### Checklist
 - [x] Review grid with editable fields (lab_results)
 - [x] `details_raw` editable in review grid
-- [x] "Confirm & Save" and "Not correct" actions (no approve/reject/bulk)
-- [x] Inline artifact preview in review UI
+- [x] "Review & confirm" action (no approve/reject/bulk)
+- [x] Preview document button in review UI (no inline preview)
 - [x] Edge Function `confirm_report_results` implemented
 - [x] Confirm sets report `final` + run `confirmed`
 - [x] Re-extraction keeps previous final results until confirm
 - [x] Remove legacy `commit_results` flow and tests
 - [x] E2E: upload -> auto extract -> confirm -> final
-- [x] E2E: not correct keeps report in review_required
-- [x] Review UI revisit (always-editable grid + manual report entry) — tracked in `docs/current specs/simple-review-flow/review_ui_revisit_plan_checklist.md`
+- [x] E2E: upload -> add test -> confirm -> final
+- [x] Review UI revisit (always-editable grid + manual test entry) — tracked in `docs/current specs/simple-review-flow/review_ui_revisit_plan_checklist.md`
+- [x] Final report edit mode (Edit → draft with discard + confirm)
 
 ### Outputs
 - Review UI page (simple confirmation)

@@ -1,5 +1,5 @@
 LabTrackSimple Validation and Review Plan (Post-Checks)
-Updated to reflect the simple review flow (confirm_report_results) and manual report entry.
+Updated to reflect the simple review flow (confirm_report_results) and manual test entry.
 
 Validation Evidence (completed)
 - Dev server start: required escalated run; Next dev bound to 0.0.0.0:3000 after initial EPERM.
@@ -32,12 +32,12 @@ Plan of Action (prioritized)
 - Confirm docs reflect the final schema: lab_results_staging has no household_id.
 
 3) Phase 5 core implementation (Review + Confirm)
-- Implemented always-editable review grid, confirm_report_results, and "Not correct" flow.
-- Inline artifact preview uses signed URLs.
+- Implemented always-editable review grid for review-required reports plus final-report edit toggle (draft mode + discard).
+- Preview document button uses signed URLs (no inline preview).
 
 4) Tests for Phase 5
-- Component tests cover review editing UX.
-- E2E tests cover extract -> review -> confirm and not-correct flows.
+- Component tests cover review editing UX and final edit toggle.
+- E2E tests cover extract -> review -> confirm plus final edit toggle.
 
 5) UX hardening (targeted)
 - Completed: light-mode Card styles, Skeleton component usage, error boundaries, and mobile header.

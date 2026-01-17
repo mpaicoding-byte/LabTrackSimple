@@ -1,6 +1,6 @@
 "use client";
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -210,6 +210,8 @@ test("owners can save a report from a file, upload its artifact, and auto-extrac
   });
 
   await userEvent.upload(fileInput, file);
+  await screen.findByRole("heading", { name: /new report from file/i });
+  expect(screen.queryByText(/preview not available/i)).toBeNull();
   await userEvent.click(
     await screen.findByRole("button", { name: /ada lovelace/i }),
   );
@@ -260,58 +262,55 @@ test("owners can save a report from a file, upload its artifact, and auto-extrac
     });
   });
 
+  await waitFor(() => {
+    expect(replaceMock).toHaveBeenCalledWith("/reports");
+  });
+
   vi.unstubAllGlobals();
 });
 
-test("owners can create a manual report and continue to review", async () => {
+test("shows view for final reports and review for reports needing review", async () => {
+  peopleData = [
+    { id: "person-1", name: "Ada Lovelace" },
+    { id: "person-2", name: "Grace Hopper" },
+  ];
+  reportsData = [
+    {
+      id: "report-final",
+      person_id: "person-1",
+      report_date: "2024-01-10",
+      source: "Uploaded via Web",
+      status: "final",
+      created_at: "2024-01-10T00:00:00Z",
+    },
+    {
+      id: "report-review",
+      person_id: "person-2",
+      report_date: "2024-02-01",
+      source: "Uploaded via Web",
+      status: "review_required",
+      created_at: "2024-02-01T00:00:00Z",
+    },
+  ];
+
   render(<ReportsManager />);
 
   await screen.findByRole("heading", { name: /lab reports/i });
+  expect(
+    screen.queryByRole("button", { name: /create manual report/i }),
+  ).toBeNull();
 
-  await userEvent.click(
-    screen.getByRole("button", { name: /create manual report/i }),
-  );
+  const finalHeading = screen.getByRole("heading", { name: /ada lovelace/i });
+  const finalCard = finalHeading.closest(".group");
+  expect(finalCard).not.toBeNull();
+  expect(
+    within(finalCard as HTMLElement).getByRole("link", { name: /view/i }),
+  ).toBeVisible();
 
-  await userEvent.click(
-    await screen.findByRole("button", { name: /ada lovelace/i }),
-  );
-
-  const dateInput = screen.getByLabelText(/report date/i);
-  await userEvent.clear(dateInput);
-  await userEvent.type(dateInput, "2024-01-10");
-
-  await userEvent.click(
-    screen.getByRole("button", { name: /create report/i }),
-  );
-
-  await waitFor(() => {
-    expect(insertReportMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        household_id: "household-1",
-        person_id: "person-1",
-        report_date: "2024-01-10",
-        source: expect.stringMatching(/manual/i),
-        status: "review_required",
-      }),
-    );
-  });
-
-  await waitFor(() => {
-    expect(insertRunMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        lab_report_id: "report-1",
-        status: "ready",
-      }),
-    );
-  });
-
-  await waitFor(() => {
-    expect(updateReportMock).toHaveBeenCalledWith(
-      expect.objectContaining({ current_extraction_run_id: "run-1" }),
-    );
-  });
-
-  await waitFor(() => {
-    expect(pushMock).toHaveBeenCalledWith("/reports/report-1/review");
-  });
+  const reviewHeading = screen.getByRole("heading", { name: /grace hopper/i });
+  const reviewCard = reviewHeading.closest(".group");
+  expect(reviewCard).not.toBeNull();
+  expect(
+    within(reviewCard as HTMLElement).getByRole("link", { name: /review/i }),
+  ).toBeVisible();
 });

@@ -45,6 +45,7 @@ const personRow = {
 
 const buildSupabaseMock = ({
   role = "owner",
+  reportStatus = "review_required",
   runRow = { id: "run-1", status: "ready" },
   resultRows = [],
   artifactRow = null,
@@ -102,7 +103,7 @@ const buildSupabaseMock = ({
 
       if (table === "lab_reports") {
         return {
-          ...buildQuery(reportRow),
+          ...buildQuery({ ...reportRow, status: reportStatus }),
           update: updateMock,
         };
       }
@@ -171,10 +172,42 @@ test("renders extracted rows and confirm actions", async () => {
   });
 
   expect(await screen.findByDisplayValue("Glucose")).toBeVisible();
-  expect(screen.getByRole("button", { name: /confirm & save/i })).toBeVisible();
-  expect(screen.getByRole("button", { name: /not correct/i })).toBeVisible();
+  expect(screen.getByRole("button", { name: /review & confirm/i })).toBeVisible();
+  expect(screen.getByRole("button", { name: /add test/i })).toBeVisible();
   expect(screen.queryByRole("button", { name: /edit/i })).toBeNull();
   expect(screen.queryByRole("button", { name: /^Approve$/i })).toBeNull();
+});
+
+test("final report enters draft mode on edit", async () => {
+  const user = userEvent.setup();
+
+  renderReview({
+    reportStatus: "final",
+    resultRows: [
+      {
+        id: "row-1",
+        name_raw: "Glucose",
+        value_raw: "90",
+        unit_raw: "mg/dL",
+        value_num: 90,
+        details_raw: null,
+        edited_at: null,
+      },
+    ],
+  });
+
+  expect(await screen.findByText("Glucose")).toBeVisible();
+  expect(screen.getByRole("button", { name: /edit/i })).toBeVisible();
+  expect(screen.queryByRole("button", { name: /review & confirm/i })).toBeNull();
+  expect(screen.queryByRole("button", { name: /add test/i })).toBeNull();
+  expect(screen.queryByLabelText(/name/i)).toBeNull();
+
+  await user.click(screen.getByRole("button", { name: /edit/i }));
+
+  expect(await screen.findByRole("button", { name: /discard draft/i })).toBeVisible();
+  expect(screen.getByRole("button", { name: /review & confirm/i })).toBeVisible();
+  expect(screen.getByRole("button", { name: /add test/i })).toBeVisible();
+  expect(screen.getByLabelText(/name/i)).toBeVisible();
 });
 
 test("confirm saves pending edits and marks edited", async () => {
@@ -201,7 +234,7 @@ test("confirm saves pending edits and marks edited", async () => {
   fireEvent.change(nameInput, { target: { value: "Fasting Glucose" } });
   fireEvent.change(valueInput, { target: { value: "95" } });
 
-  await user.click(screen.getByRole("button", { name: /confirm & save/i }));
+  await user.click(screen.getByRole("button", { name: /review & confirm/i }));
 
   await waitFor(() => {
     expect(supabaseMock._mocks.updateMock).toHaveBeenCalled();
@@ -232,41 +265,14 @@ test("confirm button invokes confirm_report_results", async () => {
     ],
   });
 
-  const confirmButton = await screen.findByRole("button", { name: /confirm & save/i });
+  const confirmButton = await screen.findByRole("button", { name: /review & confirm/i });
   await user.click(confirmButton);
   await waitFor(() => {
     expect(supabaseMock._mocks.invokeMock).toHaveBeenCalled();
   });
 });
 
-test("not correct marks the run as rejected", async () => {
-  const user = userEvent.setup();
-
-  renderReview({
-    resultRows: [
-      {
-        id: "row-1",
-        name_raw: "Glucose",
-        value_raw: "90",
-        unit_raw: "mg/dL",
-        value_num: 90,
-        details_raw: null,
-        edited_at: null,
-      },
-    ],
-  });
-
-  const notCorrect = await screen.findByRole("button", { name: /not correct/i });
-  await user.click(notCorrect);
-
-  await waitFor(() => {
-    expect(supabaseMock._mocks.updateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "rejected" }),
-    );
-  });
-});
-
-test("inline artifact preview loads a signed URL when available", async () => {
+test("preview button links to the signed URL when available", async () => {
   renderReview({
     artifactRow: {
       id: "artifact-1",
@@ -286,15 +292,16 @@ test("inline artifact preview loads a signed URL when available", async () => {
     ],
   });
 
-  await screen.findByText(/artifact preview/i);
+  const previewLink = await screen.findByRole("link", { name: /preview document/i });
   await waitFor(() => {
     expect(supabaseMock._mocks.createSignedUrlMock).toHaveBeenCalled();
   });
+  expect(previewLink).toHaveAttribute("href", "https://example.com/artifact.pdf");
 });
 
 test("empty state messaging when no results exist", async () => {
   renderReview({ resultRows: [] });
 
   expect(await screen.findByText(/no results yet/i)).toBeVisible();
-  expect(screen.getByRole("button", { name: /add result/i })).toBeVisible();
+  expect(screen.getByRole("button", { name: /add test/i })).toBeVisible();
 });

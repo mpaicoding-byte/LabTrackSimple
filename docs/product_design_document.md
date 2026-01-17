@@ -11,7 +11,7 @@ Build a web-first MVP for uploading lab reports, extracting results, reviewing/c
 - Provide an efficient review + confirmation workflow.
 - Display trends and history for numeric and text results.
 - Keep the data model minimal: name/value/unit/date/person + one `details_raw` column.
-- Support manual report creation when no document is available.
+- Support manual test entry during review when extraction misses tests.
 
 ### 1.3 Non-Goals (MVP)
 - Reference range tables or abnormal flag logic.
@@ -29,7 +29,7 @@ Rationale: keep privacy tight while avoiding onboarding complexity.
 - Create a person (family member) and add a report.
 - Upload lab report PDF/photo and extract results.
 - Review and edit extracted rows, then confirm results.
-- Create a manual report and add results without an uploaded document.
+- Add missing tests during review.
 - Search tests by name and view trends over time.
 
 ## 3. Functional Requirements
@@ -46,7 +46,7 @@ Note: members see data only after the owner links their account to a person prof
 
 ### 3.2 Reports
 - Create report with date and optional source.
-- Create manual reports without artifacts when results are entered by hand.
+- Add manual tests during review when needed.
 - View report status: `draft`, `review_required`, `final`, `extraction_failed`.
 - Attach one or more artifacts to a report.
 - Optional notes field for report context (e.g., symptoms, fasting status).
@@ -65,10 +65,10 @@ Rationale: verification requires access to the source document.
 - If extraction returns zero rows, still allow manual entry in review.
 
 ### 3.5 Review + Confirm
-- Spreadsheet-like review UI with inline editing (owner always editable, members read-only).
-- Add manual rows via "Add result" even when an artifact exists.
-- "Confirm & Save" persists edits and new rows, then finalizes the report.
-- "Not correct" keeps `review_required` and allows re-extraction.
+- Spreadsheet-like review UI with inline editing (owner editable during review; members read-only).
+- Final reports are view-only until the owner selects **Edit** to enter draft mode (with Discard draft or Review & confirm).
+- Add manual rows via "Add test" even when an artifact exists.
+- "Review & confirm" persists edits and new rows, then finalizes the report.
 - Allow manual entry even when extraction fails or no artifact exists.
 - Re-extraction creates a new run; previous final results are marked inactive on confirm.
 - Unconfirmed re-extraction runs do not affect existing final results.
@@ -99,10 +99,11 @@ Note: if a parent record is soft-deleted, its child data should be hidden in the
 ## 5. UX Requirements
 
 ### 5.1 Extraction Review Screen
-- Always-editable grid for owners; members view-only.
-- "Add result" inserts a new manual row in the grid.
-- Inline artifact preview (PDF/image) and download link.
-- For uploaded reports, show guidance to create a manual report when a test is not in the document.
+- Always-editable grid for owners during review; members view-only.
+- Final reports require an explicit **Edit** action to enter draft mode.
+- "Add test" inserts a new manual row in the grid.
+- Preview document button (opens the signed artifact URL).
+- For uploaded reports, show guidance to add missing tests from the document during review.
 - Flag ambiguous extractions (e.g., mixed types, unparsable numeric) with a prompt to edit or keep raw.
 
 ### 5.2 Trend View
@@ -133,7 +134,7 @@ Note: a household is created on signup, with the user as owner.
 
 ## 8. MVP Acceptance Criteria
 - Create household (auto on signup) → create person → create report → upload artifact → extract → review → confirm.
-- Create manual report (no artifact) → add result → confirm.
+- Add missing tests during review → confirm.
 - Search test name → see numeric trend across dates.
 - Text-only results appear in history.
 - Person date of birth saves and displays when provided.

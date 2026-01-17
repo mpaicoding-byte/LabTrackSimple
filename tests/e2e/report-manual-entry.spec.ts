@@ -1,3 +1,4 @@
+import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
@@ -21,8 +22,8 @@ const getAdminClient = () => {
   });
 };
 
-test.describe("manual report entry", () => {
-  test("owner can create a manual report, add a result, and confirm", async ({ page }) => {
+test.describe("manual test entry", () => {
+  test("owner can add a test during review and confirm", async ({ page }) => {
     requireCredentials();
     const admin = getAdminClient();
 
@@ -37,10 +38,22 @@ test.describe("manual report entry", () => {
     await expect(page.getByRole("heading", { name: new RegExp(newName, "i") })).toBeVisible();
 
     await page.goto("/reports");
-    await page.getByRole("button", { name: /create manual report/i }).click();
+    const filePath = path.resolve("tests/assets/Report Mahesh 2025.pdf");
+    await page.getByLabel(/report file/i).setInputFiles(filePath);
     await page.getByRole("button", { name: new RegExp(newName, "i") }).click();
     await page.getByLabel(/report date/i).fill("2024-02-15");
-    await page.getByRole("button", { name: /create report/i }).click();
+    await page.getByRole("button", { name: /save report/i }).click();
+
+    const reportCard = page
+      .getByRole("heading", { name: new RegExp(newName, "i") })
+      .first()
+      .locator("xpath=ancestor::div[contains(@class,'group')][1]");
+
+    await expect(reportCard.getByText(/review required/i)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await reportCard.getByRole("link", { name: /review/i }).click();
 
     await page.waitForURL(/\/reports\/[^/]+\/review/);
     await expect(page.getByRole("heading", { name: /review results/i })).toBeVisible();
@@ -49,12 +62,16 @@ test.describe("manual report entry", () => {
     const reportId = reportMatch?.[1] ?? null;
     expect(reportId).toBeTruthy();
 
-    await page.getByRole("button", { name: /add result/i }).click();
-    await page.getByLabel(/^name$/i).fill("ManualTest");
-    await page.getByLabel(/^value$/i).fill("123");
-    await page.getByLabel(/^unit$/i).fill("mg/dL");
+    await page.getByRole("button", { name: /add test/i }).click();
+    const newRow = page
+      .getByRole("button", { name: /remove/i })
+      .last()
+      .locator("xpath=ancestor::tr");
+    await newRow.getByLabel(/^name$/i).fill("ManualTest");
+    await newRow.getByLabel(/^value$/i).fill("123");
+    await newRow.getByLabel(/^unit$/i).fill("mg/dL");
 
-    await page.getByRole("button", { name: /confirm & save/i }).click();
+    await page.getByRole("button", { name: /review & confirm/i }).click();
     await expect(page.getByText(/report confirmed/i)).toBeVisible({ timeout: 30_000 });
 
     const { data: report } = await admin
@@ -75,4 +92,3 @@ test.describe("manual report entry", () => {
     expect((results ?? []).every((row) => row.is_active && row.is_final)).toBeTruthy();
   });
 });
-
