@@ -17,8 +17,8 @@ Create these "dumb" components in `components/ui` to build our design system.
 - [x] **Input** (`components/ui/input.tsx`)
 - [x] **Card** (`components/ui/card.tsx`) - Header, Title, Content, Footer parts.
 - [x] **Badge** (`components/ui/badge.tsx`) - For status (Draft, Final, Error).
-- [x] **Label** (Deferred: optional wrapper skipped).
-- [x] **Select** (Deferred: native select used for now).
+- [x] **Label**
+- [x] **Select**
 
 ## Phase 3: App Layout (Sidebar)
 Refactor the root layout to support a sidebar-first navigation.

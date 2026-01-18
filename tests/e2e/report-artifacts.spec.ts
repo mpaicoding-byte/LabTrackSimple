@@ -1,5 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { selectCalendarDate } from "./selectCalendarDate";
 
 const requireCredentials = () => {
   if (!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD) {
@@ -14,10 +15,14 @@ test.describe("reports and artifacts", () => {
     await page.goto("/people");
 
     const newName = `E2E Report Person ${Date.now()}`;
+    const dobDate = new Date();
+    dobDate.setDate(1);
     await page.getByRole("button", { name: /add family member/i }).click();
     await page.getByLabel("Full Name").fill(newName);
-    await page.getByLabel(/date of birth/i).fill("1990-01-01");
-    await page.getByLabel("Gender").selectOption("female");
+    await page.getByLabel(/date of birth/i).click();
+    await selectCalendarDate(page, dobDate);
+    await page.getByLabel("Gender").click();
+    await page.getByRole("option", { name: "Female" }).click();
     await page.getByRole("button", { name: /save person/i }).click();
     await expect(page.getByText(newName, { exact: true })).toBeVisible();
 
@@ -30,7 +35,10 @@ test.describe("reports and artifacts", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: new RegExp(newName, "i") }).click();
-    await page.getByLabel(/report date/i).fill("2024-02-15");
+    const reportDate = new Date();
+    reportDate.setDate(15);
+    await page.getByLabel(/report date/i).click();
+    await selectCalendarDate(page, reportDate);
     await page.getByRole("button", { name: /save report/i }).click();
 
     await expect(page.getByRole("heading", { name: /lab reports/i })).toBeVisible();

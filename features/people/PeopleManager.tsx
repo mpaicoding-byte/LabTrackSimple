@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, User, Pencil, Trash2, X, Check } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
+import { Loader2, Plus, User, Pencil, Trash2, X, Check, Calendar as CalendarIcon } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 import { useSession } from "@/features/auth/SessionProvider";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -20,8 +27,13 @@ type PersonRow = {
   created_at: string;
 };
 
+type CreatePersonFormValues = {
+  name: string;
+  dateOfBirth: string;
+  gender: string;
+};
+
 const genderOptions = [
-  { value: "", label: "Select gender" },
   { value: "female", label: "Female" },
   { value: "male", label: "Male" },
 ];
@@ -35,6 +47,27 @@ const wrapWithBoundary = (content: React.ReactNode) => (
   <ErrorBoundary>{content}</ErrorBoundary>
 );
 
+const formatDateValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateValue = (value: string) => {
+  if (!value) return undefined;
+  return new Date(`${value}T00:00:00`);
+};
+
+const formatDateLabel = (value: string) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Pick a date";
+
 export const PeopleManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const { session, loading: sessionLoading } = useSession();
@@ -46,20 +79,29 @@ export const PeopleManager = () => {
 
   // Create Mode
   const [isCreating, setIsCreating] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDob, setNewDob] = useState("");
-  const [newGender, setNewGender] = useState("");
+  const {
+    control,
+    handleSubmit,
+    register,
+    reset: resetCreateForm,
+    formState: { errors, isSubmitting },
+  } = useForm<CreatePersonFormValues>({
+    defaultValues: {
+      name: "",
+      dateOfBirth: "",
+      gender: "",
+    },
+    mode: "onSubmit",
+  });
 
   // Edit Mode
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDob, setEditDob] = useState("");
   const [editGender, setEditGender] = useState("");
-
-  const canCreate =
-    newName.trim().length > 0 &&
-    newDob.trim().length > 0 &&
-    (newGender === "female" || newGender === "male");
+  const [deleteCandidate, setDeleteCandidate] = useState<PersonRow | null>(null);
+  const [newDobOpen, setNewDobOpen] = useState(false);
+  const [editDobOpen, setEditDobOpen] = useState(false);
 
 
   const loadData = useCallback(async () => {
@@ -100,26 +142,28 @@ export const PeopleManager = () => {
     if (!sessionLoading) loadData();
   }, [sessionLoading, loadData]);
 
-  const createPerson = async () => {
-    if (!householdId || !canCreate) return;
+  const handleCreatePerson = handleSubmit(async (values) => {
+    if (!householdId) return;
 
     setLoading(true);
     const { error } = await supabase.from("people").insert({
       household_id: householdId,
-      name: newName,
-      date_of_birth: newDob || null,
-      gender: newGender || null
+      name: values.name.trim(),
+      date_of_birth: values.dateOfBirth || null,
+      gender: values.gender || null,
     });
 
     if (!error) {
-      setNewName("");
-      setNewDob("");
-      setNewGender("");
+      resetCreateForm();
+      setNewDobOpen(false);
       setIsCreating(false);
       await loadData();
+      toast.success("Family member added.");
+    } else {
+      toast.error(error.message ?? "Unable to add family member.");
     }
     setLoading(false);
-  };
+  });
 
   const renamePerson = async () => {
     if (!editingId || !editName) return;
@@ -136,18 +180,24 @@ export const PeopleManager = () => {
     if (!error) {
       setEditingId(null);
       await loadData();
+      toast.success("Family member updated.");
+    } else {
+      toast.error(error.message ?? "Unable to update family member.");
     }
   };
 
   const softDeletePerson = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this person?")) return;
-
     const { error } = await supabase
       .from("people")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id);
 
-    if (!error) await loadData();
+    if (!error) {
+      await loadData();
+      toast.success("Family member removed.");
+    } else {
+      toast.error(error.message ?? "Unable to remove family member.");
+    }
   };
 
   const startEdit = (p: PersonRow) => {
@@ -200,46 +250,117 @@ export const PeopleManager = () => {
                 Add a new person to track reports for.
               </p>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              <div className="space-y-4">
-                <div className="md:grid md:grid-cols-2 gap-6 space-y-4 md:space-y-0">
-                  <div className="space-y-2">
-                    <label htmlFor="person-name" className="text-sm font-medium">Full Name</label>
-                    <Input
-                      id="person-name"
-                      placeholder="e.g. Grandma Mae"
-                      value={newName}
-                      onChange={e => setNewName(e.target.value)}
-                    />
+            <CardContent className="pt-6">
+              <form className="space-y-6" onSubmit={handleCreatePerson}>
+                <div className="space-y-4">
+                  <div className="md:grid md:grid-cols-2 gap-6 space-y-4 md:space-y-0">
+                    <div className="space-y-2">
+                      <Label htmlFor="person-name">Full Name</Label>
+                      <Input
+                        id="person-name"
+                        placeholder="e.g. Grandma Mae"
+                        {...register("name", {
+                          required: "Full name is required.",
+                        })}
+                      />
+                      {errors.name?.message && (
+                        <p className="text-xs font-medium text-destructive">
+                          {errors.name.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="person-dob">Date of Birth</Label>
+                      <Controller
+                        control={control}
+                        name="dateOfBirth"
+                        rules={{ required: "Date of birth is required." }}
+                        render={({ field }) => (
+                          <Popover open={newDobOpen} onOpenChange={setNewDobOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id="person-dob"
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {formatDateLabel(field.value)}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={parseDateValue(field.value)}
+                                onSelect={(date) => {
+                                  field.onChange(date ? formatDateValue(date) : "");
+                                  setNewDobOpen(false);
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      />
+                      {errors.dateOfBirth?.message && (
+                        <p className="text-xs font-medium text-destructive">
+                          {errors.dateOfBirth.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="person-dob" className="text-sm font-medium">Date of Birth</label>
-                    <Input
-                      id="person-dob"
-                      type="date"
-                      value={newDob}
-                      onChange={e => setNewDob(e.target.value)}
+                    <Label htmlFor="person-gender">Gender</Label>
+                    <Controller
+                      control={control}
+                      name="gender"
+                      rules={{ required: "Gender is required." }}
+                      render={({ field }) => {
+                        const selectedLabel =
+                          genderOptions.find((option) => option.value === field.value)
+                            ?.label ?? "Select gender";
+                        return (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger id="person-gender">
+                              <SelectValue>{selectedLabel}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {genderOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        );
+                      }}
                     />
+                    {errors.gender?.message && (
+                      <p className="text-xs font-medium text-destructive">
+                        {errors.gender.message}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="person-gender" className="text-sm font-medium">Gender</label>
-                  <select
-                    id="person-gender"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                    value={newGender}
-                    onChange={e => setNewGender(e.target.value)}
+                <div className="flex gap-3 justify-end pt-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      resetCreateForm();
+                      setNewDobOpen(false);
+                      setIsCreating(false);
+                    }}
                   >
-                    {genderOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading || isSubmitting}>
+                    {loading || isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save Person"
+                    )}
+                  </Button>
                 </div>
-              </div>
-              <div className="flex gap-3 justify-end pt-4">
-                <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
-                <Button onClick={createPerson} disabled={loading || !canCreate}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Person"}
-                </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -281,7 +402,7 @@ export const PeopleManager = () => {
                       <Button size="icon" variant="ghost" onClick={() => startEdit(person)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => softDeletePerson(person.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteCandidate(person)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -291,7 +412,41 @@ export const PeopleManager = () => {
                 {editingId === person.id ? (
                   <div className="space-y-4 animate-in fade-in">
                     <Input value={editName} onChange={e => setEditName(e.target.value)} />
-                    <Input type="date" value={editDob} onChange={e => setEditDob(e.target.value)} />
+                    <Popover open={editDobOpen} onOpenChange={setEditDobOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formatDateLabel(editDob)}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={parseDateValue(editDob)}
+                          onSelect={(date) =>
+                            {
+                              setEditDob(date ? formatDateValue(date) : "");
+                              setEditDobOpen(false);
+                            }
+                          }
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Select value={editGender} onValueChange={setEditGender}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {genderOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" onClick={renamePerson}><Check className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
@@ -303,7 +458,12 @@ export const PeopleManager = () => {
                     <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground"></span>
-                        {person.date_of_birth ? new Date(person.date_of_birth).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : "DOB Unknown"}
+                        {person.date_of_birth
+                          ? new Date(`${person.date_of_birth}T00:00:00`).toLocaleDateString(
+                              undefined,
+                              { year: "numeric", month: "long", day: "numeric" },
+                            )
+                          : "DOB Unknown"}
                       </span>
                       <span className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground"></span>
@@ -323,6 +483,33 @@ export const PeopleManager = () => {
             </div>
           )}
         </div>
+        <AlertDialog
+          open={Boolean(deleteCandidate)}
+          onOpenChange={(open) => {
+            if (!open) setDeleteCandidate(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove family member?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will remove the person from your household list.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (!deleteCandidate) return;
+                  void softDeletePerson(deleteCandidate.id);
+                  setDeleteCandidate(null);
+                }}
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

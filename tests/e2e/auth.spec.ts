@@ -130,7 +130,7 @@ test.describe("auth flow", () => {
     await page.locator("form").getByRole("button", { name: "Sign in" }).click();
 
     await expect(
-      page.getByText(/invalid login credentials/i),
+      page.locator("form").getByText(/invalid login credentials/i),
     ).toBeVisible();
   });
 });

@@ -68,6 +68,21 @@ and shows numeric sparklines alongside text-only results.
 - shadcn/ui (New York style, CSS variable theme)
 - Supabase (Postgres + RLS + Storage + Edge Functions)
 
+## shadcn/ui Workflow
+
+shadcn/ui components are copied into `components/ui/` (source code you own).
+Best practice here:
+- Prefer styling via props/classes at call sites or small wrappers in `features/`.
+- Keep direct edits to `components/ui/*` minimal to simplify updates.
+- When updates are needed, re-run `npx shadcn@latest add <component> --overwrite`
+  and re-apply any local tweaks.
+
+Update checklist:
+- Decide which components to refresh.
+- Run `npx shadcn@latest add <component> --overwrite` for those components.
+- Re-apply any local changes or wrappers if needed.
+- Run `npm run test:unit` and `npm run test:e2e`.
+
 ## Project Layout
 
 - `app/` - UI routes and layout

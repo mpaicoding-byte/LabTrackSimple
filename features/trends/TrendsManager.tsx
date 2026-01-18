@@ -9,6 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/ui/loading-state";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TrendGroup, TrendRow } from "./types";
 import { buildTrendGroups } from "./utils";
@@ -311,29 +319,29 @@ export const TrendsManager = () => {
         <Card className="gap-0 py-0">
           <CardContent className="px-0 py-0">
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed text-sm">
+              <Table>
                 <colgroup>
                   <col className="w-64" />
                   <col />
                 </colgroup>
-                <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="sticky left-0 z-20 bg-muted/40 px-6 py-3 text-left font-semibold">
+                <TableHeader className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                  <TableRow>
+                    <TableHead className="sticky left-0 z-20 bg-muted/40 px-6 text-left font-semibold">
                       Test
-                    </th>
-                    <th className="px-6 py-3 text-left font-semibold">Trend</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
+                    </TableHead>
+                    <TableHead className="px-6 text-left font-semibold">Trend</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border">
                   {filteredGroups.length === 0 ? (
-                    <tr>
-                      <td
+                    <TableRow>
+                      <TableCell
                         colSpan={2}
                         className="px-6 py-10 text-center text-sm text-muted-foreground"
                       >
                         No tests match \"{search.trim()}\".
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     filteredGroups.map((group) => {
                       const resultCount =
@@ -341,8 +349,8 @@ export const TrendsManager = () => {
                       const hasNumeric = group.points.length > 0;
 
                       return (
-                        <tr key={group.key} className="align-top">
-                          <td className="sticky left-0 z-10 bg-background px-6 py-4">
+                        <TableRow key={group.key} className="align-top">
+                          <TableCell className="sticky left-0 z-10 bg-background px-6 py-4">
                             <div className="space-y-1">
                               <p className="text-sm font-semibold text-foreground">
                                 {group.name}
@@ -351,8 +359,8 @@ export const TrendsManager = () => {
                                 {group.unit ?? "No unit"} · {resultCount} results
                               </p>
                             </div>
-                          </td>
-                          <td className="px-6 py-4">
+                          </TableCell>
+                          <TableCell className="px-6 py-4">
                             {hasNumeric ? (
                               <TrendSparkline
                                 points={group.points}
@@ -364,13 +372,13 @@ export const TrendsManager = () => {
                                 No chart
                               </div>
                             )}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>

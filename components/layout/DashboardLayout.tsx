@@ -2,26 +2,30 @@ import Link from "next/link";
 import { TestTube2 } from "lucide-react";
 
 import { AppSidebar } from "./AppSidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="min-h-screen bg-background">
+        <SidebarProvider>
             <AppSidebar />
-            <main className="lg:pl-64">
+            <SidebarInset>
                 <header
                     data-testid="mobile-header"
                     className="sticky top-0 z-20 border-b border-border bg-background lg:hidden"
                 >
-                    <div className="flex items-center justify-between px-4 py-3">
-                        <Link
-                            href="/"
-                            className="flex items-center gap-2 text-base font-semibold text-foreground"
-                        >
-                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                                <TestTube2 className="h-5 w-5" />
-                            </span>
-                            <span>LabTrack</span>
-                        </Link>
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div className="flex items-center gap-2">
+                            <SidebarTrigger className="lg:hidden" />
+                            <Link
+                                href="/"
+                                className="flex items-center gap-2 text-base font-semibold text-foreground"
+                            >
+                                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                                    <TestTube2 className="h-5 w-5" />
+                                </span>
+                                <span>LabTrack</span>
+                            </Link>
+                        </div>
                         <nav className="flex items-center gap-2 text-xs font-medium">
                             <Link
                                 href="/"
@@ -47,7 +51,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <div className="px-4 py-8 sm:px-6 lg:px-8">
                     {children}
                 </div>
-            </main>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }

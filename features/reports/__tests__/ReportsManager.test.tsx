@@ -6,6 +6,8 @@ import { vi } from "vitest";
 
 import { ReportsManager } from "../ReportsManager";
 
+let mockedSelectedDate: Date | undefined;
+
 const pushMock = vi.fn();
 const replaceMock = vi.fn();
 const prefetchMock = vi.fn();
@@ -227,6 +229,34 @@ vi.mock("@/features/core/supabaseClient", () => ({
   getSupabaseBrowserClient: () => supabaseMock,
 }));
 
+vi.mock("@/components/ui/calendar", () => ({
+  Calendar: ({ onSelect }: { onSelect?: (date: Date | undefined) => void }) => (
+    <button
+      type="button"
+      data-testid="calendar-mock"
+      onClick={() => onSelect?.(mockedSelectedDate)}
+    />
+  ),
+}));
+
+const toastMock = vi.hoisted(() =>
+  Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+);
+
+vi.mock("sonner", () => ({
+  toast: toastMock,
+}));
+
+const formatDateValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const sessionMock = { user: { id: "user-1", email: "owner@example.com" } };
 let sessionState: typeof sessionMock | null = sessionMock;
 
@@ -293,9 +323,12 @@ test("owners can create a manual report from the reports page", async () => {
     await screen.findByRole("button", { name: /ada lovelace/i }),
   );
 
-  const dateInput = screen.getByLabelText(/report date/i);
-  await userEvent.clear(dateInput);
-  await userEvent.type(dateInput, "2024-01-12");
+  const dateTrigger = screen.getByLabelText(/report date/i);
+  await userEvent.click(dateTrigger);
+  const today = new Date();
+  const selectedDate = new Date(today.getFullYear(), today.getMonth(), 12);
+  mockedSelectedDate = selectedDate;
+  await userEvent.click(screen.getByTestId("calendar-mock"));
 
   await userEvent.click(
     screen.getByRole("button", { name: /create manual report/i }),
@@ -309,7 +342,7 @@ test("owners can create a manual report from the reports page", async () => {
     expect.objectContaining({
       household_id: "household-1",
       person_id: "person-1",
-      report_date: "2024-01-12",
+      report_date: formatDateValue(selectedDate),
       source: "Manual entry",
       status: "review_required",
     }),
@@ -339,9 +372,12 @@ test("owners can save a report from a file, upload its artifact, and auto-extrac
     await screen.findByRole("button", { name: /ada lovelace/i }),
   );
 
-  const dateInput = screen.getByLabelText(/report date/i);
-  await userEvent.clear(dateInput);
-  await userEvent.type(dateInput, "2024-01-10");
+  const dateTrigger = screen.getByLabelText(/report date/i);
+  await userEvent.click(dateTrigger);
+  const today = new Date();
+  const selectedDate = new Date(today.getFullYear(), today.getMonth(), 10);
+  mockedSelectedDate = selectedDate;
+  await userEvent.click(screen.getByTestId("calendar-mock"));
 
   await userEvent.click(
     screen.getByRole("button", { name: /save report/i }),
@@ -355,7 +391,7 @@ test("owners can save a report from a file, upload its artifact, and auto-extrac
     expect.objectContaining({
       household_id: "household-1",
       person_id: "person-1",
-      report_date: "2024-01-10",
+      report_date: formatDateValue(selectedDate),
       source: "Uploaded via Web",
       status: "draft",
     }),
@@ -417,15 +453,19 @@ test("shows an inline error when the report cannot be created", async () => {
     await screen.findByRole("button", { name: /ada lovelace/i }),
   );
 
-  const dateInput = screen.getByLabelText(/report date/i);
-  await userEvent.clear(dateInput);
-  await userEvent.type(dateInput, "2024-01-10");
+  const dateTrigger = screen.getByLabelText(/report date/i);
+  await userEvent.click(dateTrigger);
+  const today = new Date();
+  const selectedDate = new Date(today.getFullYear(), today.getMonth(), 10);
+  mockedSelectedDate = selectedDate;
+  await userEvent.click(screen.getByTestId("calendar-mock"));
 
   await userEvent.click(
     screen.getByRole("button", { name: /save report/i }),
   );
 
   expect(await screen.findByText(/insert failed/i)).toBeInTheDocument();
+  expect(toastMock.error).toHaveBeenCalled();
 });
 
 test("owners do not see delete action in the report list", async () => {

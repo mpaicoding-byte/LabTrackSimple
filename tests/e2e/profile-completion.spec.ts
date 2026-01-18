@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { selectCalendarDate } from "./selectCalendarDate";
 
 const requireCredentials = () => {
   if (!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD) {
@@ -45,10 +46,14 @@ test.describe("profile completion gate", () => {
     ]);
 
     if (!(await completionHeading.isVisible())) {
-      await page.getByRole("button", { name: "Sign in" }).first().click();
-      await page.getByLabel("Email").fill(signupEmail);
-      await page.getByLabel("Password").fill(password);
-      await page.locator("form").getByRole("button", { name: "Sign in" }).click();
+      await page.goto("/auth");
+      const signInToggle = page.getByRole("button", { name: "Sign in" }).first();
+      if (await signInToggle.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await signInToggle.click();
+        await page.getByLabel("Email").fill(signupEmail);
+        await page.getByLabel("Password").fill(password);
+        await page.locator("form").getByRole("button", { name: "Sign in" }).click();
+      }
     }
 
     await page.waitForURL("**/onboarding/profile");
@@ -57,11 +62,16 @@ test.describe("profile completion gate", () => {
     ).toBeVisible();
 
     const saveButton = page.getByRole("button", { name: /save profile/i });
-    await expect(saveButton).toBeDisabled();
+    await saveButton.click();
+    await expect(page.getByText("Date of birth is required.")).toBeVisible();
+    await expect(page.getByText("Gender is required.")).toBeVisible();
 
-    await page.getByLabel("Date of birth").fill("1992-05-07");
-    await page.getByLabel("Gender").selectOption("female");
-    await expect(saveButton).toBeEnabled();
+    const dobDate = new Date();
+    dobDate.setDate(1);
+    await page.getByLabel("Date of birth").click();
+    await selectCalendarDate(page, dobDate);
+    await page.getByLabel("Gender").click();
+    await page.getByRole("option", { name: "Female" }).click();
     await saveButton.click();
 
     await page.waitForURL("**/people");

@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 import { useSession } from "@/features/auth/SessionProvider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
 import { LoadingState } from "@/components/ui/loading-state";
 
 type Status = {
@@ -16,11 +21,36 @@ type Status = {
   message: string;
 };
 
+type ProfileFormValues = {
+  dateOfBirth: string;
+  gender: string;
+};
+
 const genderOptions = [
-  { value: "", label: "Select gender" },
   { value: "female", label: "Female" },
   { value: "male", label: "Male" },
 ];
+
+const formatDateValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateValue = (value: string) => {
+  if (!value) return undefined;
+  return new Date(`${value}T00:00:00`);
+};
+
+const formatDateLabel = (value: string) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Pick a date";
 
 const isPastDate = (value: string) => {
   if (!value) {
@@ -38,12 +68,23 @@ export const ProfileCompletionScreen = () => {
   const router = useRouter();
   const { session, loading } = useSession();
   const [personId, setPersonId] = useState<string | null>(null);
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [dobOpen, setDobOpen] = useState(false);
   const [status, setStatus] = useState<Status>({
     type: "idle",
     message: "",
+  });
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<ProfileFormValues>({
+    defaultValues: {
+      dateOfBirth: "",
+      gender: "",
+    },
+    mode: "onSubmit",
   });
 
   useEffect(() => {
@@ -89,8 +130,10 @@ export const ProfileCompletionScreen = () => {
       }
 
       setPersonId(data.id);
-      setDateOfBirth(data.date_of_birth ?? "");
-      setGender(data.gender ?? "");
+      reset({
+        dateOfBirth: data.date_of_birth ?? "",
+        gender: data.gender ?? "",
+      });
       setLoadingProfile(false);
     };
 
@@ -101,48 +144,43 @@ export const ProfileCompletionScreen = () => {
     return () => {
       isActive = false;
     };
-  }, [loading, router, session, supabase]);
+  }, [loading, reset, router, session, supabase]);
 
-  const dateError =
-    dateOfBirth && !isPastDate(dateOfBirth)
-      ? "Date of birth must be in the past."
-      : "";
-  const canSubmit =
-    isPastDate(dateOfBirth) && (gender === "female" || gender === "male");
+  const onSubmit = handleSubmit(
+    async (values) => {
+      if (!personId) {
+        setStatus({ type: "error", message: "Missing profile record." });
+        toast.error("Missing profile record.");
+        return;
+      }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+      setStatus({ type: "loading", message: "Saving profile..." });
+      const { error } = await supabase
+        .from("people")
+        .update({
+          date_of_birth: values.dateOfBirth,
+          gender: values.gender,
+        })
+        .eq("id", personId);
 
-    if (!personId) {
-      setStatus({ type: "error", message: "Missing profile record." });
-      return;
-    }
+      if (error) {
+        setStatus({ type: "error", message: error.message });
+        toast.error(error.message);
+        return;
+      }
 
-    if (!canSubmit) {
+      setStatus({ type: "success", message: "Profile saved." });
+      toast.success("Profile saved.");
+      router.replace("/people");
+    },
+    () => {
       setStatus({
         type: "error",
         message: "Please provide a valid date of birth and gender.",
       });
-      return;
-    }
-
-    setStatus({ type: "loading", message: "Saving profile..." });
-    const { error } = await supabase
-      .from("people")
-      .update({
-        date_of_birth: dateOfBirth,
-        gender,
-      })
-      .eq("id", personId);
-
-    if (error) {
-      setStatus({ type: "error", message: error.message });
-      return;
-    }
-
-    setStatus({ type: "success", message: "Profile saved." });
-    router.replace("/people");
-  };
+      toast.error("Please provide a valid date of birth and gender.");
+    },
+  );
 
   if (loading || loadingProfile) {
     return (
@@ -166,49 +204,91 @@ export const ProfileCompletionScreen = () => {
           </p>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <label htmlFor="profile-dob" className="text-sm font-medium">
-                Date of birth
-              </label>
-              <Input
-                id="profile-dob"
-                type="date"
-                value={dateOfBirth}
-                onChange={(event) => setDateOfBirth(event.target.value)}
-                required
+              <Label htmlFor="profile-dob">Date of birth</Label>
+              <Controller
+                control={control}
+                name="dateOfBirth"
+                rules={{
+                  required: "Date of birth is required.",
+                  validate: (value) =>
+                    isPastDate(value) || "Date of birth must be in the past.",
+                }}
+                render={({ field }) => (
+                  <Popover open={dobOpen} onOpenChange={setDobOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="profile-dob"
+                        variant="outline"
+                        aria-invalid={Boolean(errors.dateOfBirth)}
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formatDateLabel(field.value)}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={parseDateValue(field.value)}
+                        onSelect={(date) => {
+                          field.onChange(date ? formatDateValue(date) : "");
+                          setDobOpen(false);
+                        }}
+                        disabled={(date) => date > new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               />
-              {dateError && (
-                <p className="text-xs font-medium text-destructive">{dateError}</p>
+              {errors.dateOfBirth?.message && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.dateOfBirth.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="profile-gender" className="text-sm font-medium">
-                Gender
-              </label>
-              <select
-                id="profile-gender"
-                value={gender}
-                onChange={(event) => setGender(event.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                required
-              >
-                {genderOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <Label htmlFor="profile-gender">Gender</Label>
+              <Controller
+                control={control}
+                name="gender"
+                rules={{ required: "Gender is required." }}
+                render={({ field }) => {
+                  const selectedLabel =
+                    genderOptions.find((option) => option.value === field.value)
+                      ?.label ?? "Select gender";
+                  return (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="profile-gender">
+                        <SelectValue>{selectedLabel}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {genderOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                }}
+              />
+              {errors.gender?.message && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.gender.message}
+                </p>
+              )}
             </div>
 
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={!canSubmit || status.type === "loading"}
+              disabled={status.type === "loading" || isSubmitting}
             >
-              {status.type === "loading" ? (
+              {status.type === "loading" || isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...

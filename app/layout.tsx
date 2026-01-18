@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 import { SessionProvider } from "@/features/auth/SessionProvider";
 import { ProfileCompletionGate } from "@/features/onboarding/ProfileCompletionGate";
@@ -32,6 +33,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ProfileCompletionGate>{children}</ProfileCompletionGate>
+            <Toaster />
           </ThemeProvider>
         </SessionProvider>
       </body>

@@ -17,6 +17,35 @@ if (!globalThis.HTMLElement.prototype.scrollIntoView) {
   globalThis.HTMLElement.prototype.scrollIntoView = vi.fn();
 }
 
+if (!globalThis.HTMLElement.prototype.hasPointerCapture) {
+  // @ts-expect-error - test shim for Radix Select
+  globalThis.HTMLElement.prototype.hasPointerCapture = () => false;
+}
+
+if (!globalThis.HTMLElement.prototype.setPointerCapture) {
+  // @ts-expect-error - test shim for Radix Select
+  globalThis.HTMLElement.prototype.setPointerCapture = () => {};
+}
+
+if (!globalThis.HTMLElement.prototype.releasePointerCapture) {
+  // @ts-expect-error - test shim for Radix Select
+  globalThis.HTMLElement.prototype.releasePointerCapture = () => {};
+}
+
+if (!globalThis.matchMedia) {
+  // @ts-expect-error - test shim for Radix/shadcn hooks
+  globalThis.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
+
 // Provide stable dimensions for chart containers in jsdom.
 // @ts-expect-error - test shim
 globalThis.HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({

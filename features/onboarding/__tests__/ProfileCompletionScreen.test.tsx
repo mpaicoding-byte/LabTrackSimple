@@ -1,10 +1,12 @@
 "use client";
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { ProfileCompletionScreen } from "../ProfileCompletionScreen";
+
+let mockedSelectedDate: Date | undefined;
 
 const updateEqMock = vi.fn().mockResolvedValue({ error: null });
 const updateMock = vi.fn(() => ({ eq: updateEqMock }));
@@ -37,6 +39,34 @@ vi.mock("@/features/core/supabaseClient", () => ({
   getSupabaseBrowserClient: () => supabaseMock,
 }));
 
+vi.mock("@/components/ui/calendar", () => ({
+  Calendar: ({ onSelect }: { onSelect?: (date: Date | undefined) => void }) => (
+    <button
+      type="button"
+      data-testid="calendar-mock"
+      onClick={() => onSelect?.(mockedSelectedDate)}
+    />
+  ),
+}));
+
+const toastMock = vi.hoisted(() =>
+  Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+);
+
+vi.mock("sonner", () => ({
+  toast: toastMock,
+}));
+
+const formatDateValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const sessionMock = { user: { id: "user-1", email: "owner@example.com" } };
 const sessionState = {
   session: sessionMock,
@@ -52,42 +82,41 @@ vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
 }));
 
-test("requires date of birth and gender before enabling submit", async () => {
+test("shows validation errors when required fields are missing", async () => {
   render(<ProfileCompletionScreen />);
 
-  const dobInput = await screen.findByLabelText(/date of birth/i);
-  const genderSelect = screen.getByLabelText(/gender/i);
-  const submitButton = screen.getByRole("button", {
+  const submitButton = await screen.findByRole("button", {
     name: /save profile/i,
   });
 
-  expect(submitButton).toHaveAttribute("data-slot", "button");
-  expect(submitButton).toBeDisabled();
+  await userEvent.click(submitButton);
 
-  fireEvent.change(dobInput, { target: { value: "1990-01-01" } });
-  fireEvent.change(genderSelect, { target: { value: "female" } });
-
-  await waitFor(() => {
-    expect(submitButton).toBeEnabled();
-  });
+  expect(await screen.findByText(/date of birth is required/i)).toBeInTheDocument();
+  expect(screen.getByText(/gender is required/i)).toBeInTheDocument();
+  expect(updateMock).not.toHaveBeenCalled();
 });
 
 test("submits profile updates and redirects", async () => {
   render(<ProfileCompletionScreen />);
 
-  const dobInput = await screen.findByLabelText(/date of birth/i);
-  const genderSelect = screen.getByLabelText(/gender/i);
+  const dobTrigger = await screen.findByLabelText(/date of birth/i);
+  const genderTrigger = screen.getByLabelText(/gender/i);
   const submitButton = screen.getByRole("button", {
     name: /save profile/i,
   });
 
-  fireEvent.change(dobInput, { target: { value: "1991-02-03" } });
-  fireEvent.change(genderSelect, { target: { value: "male" } });
+  await userEvent.click(dobTrigger);
+  const today = new Date();
+  const selectedDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  mockedSelectedDate = selectedDate;
+  await userEvent.click(screen.getByTestId("calendar-mock"));
+  await userEvent.click(genderTrigger);
+  await userEvent.click(screen.getByRole("option", { name: /^male$/i }));
   await userEvent.click(submitButton);
 
   await waitFor(() => {
     expect(updateMock).toHaveBeenCalledWith({
-      date_of_birth: "1991-02-03",
+      date_of_birth: formatDateValue(selectedDate),
       gender: "male",
     });
   });
@@ -99,6 +128,7 @@ test("submits profile updates and redirects", async () => {
   await waitFor(() => {
     expect(pushMock).toHaveBeenCalledWith("/people");
   });
+  expect(toastMock.success).toHaveBeenCalled();
 });
 
 test("profile completion uses shared loading state while session loads", () => {

@@ -2,6 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 import type { ReviewDraft, ReviewRow } from "./types";
 
@@ -38,8 +46,8 @@ export const ReviewGrid = ({
       removable = false,
     }: { isEdited?: boolean; removable?: boolean } = {},
   ) => (
-    <tr key={rowId} className="align-top">
-      <td className="px-4 py-3">
+    <TableRow key={rowId} className="align-top">
+      <TableCell className="px-4 py-3">
         <div className="flex flex-col gap-1">
           <Input
             aria-label="Name"
@@ -54,8 +62,8 @@ export const ReviewGrid = ({
             <span className="text-xs font-medium text-primary">Edited</span>
           )}
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Input
           aria-label="Value"
           value={values.value_raw}
@@ -65,8 +73,8 @@ export const ReviewGrid = ({
               : onExistingDraftChange(rowId, { value_raw: event.target.value })
           }
         />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Input
           aria-label="Unit"
           value={values.unit_raw}
@@ -76,8 +84,8 @@ export const ReviewGrid = ({
               : onExistingDraftChange(rowId, { unit_raw: event.target.value })
           }
         />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Input
           aria-label="Numeric value"
           inputMode="decimal"
@@ -88,8 +96,8 @@ export const ReviewGrid = ({
               : onExistingDraftChange(rowId, { value_num: event.target.value })
           }
         />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Input
           aria-label="Details"
           value={values.details_raw}
@@ -99,8 +107,8 @@ export const ReviewGrid = ({
               : onExistingDraftChange(rowId, { details_raw: event.target.value })
           }
         />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         {removable ? (
           <Button
             variant="ghost"
@@ -110,29 +118,29 @@ export const ReviewGrid = ({
             Remove
           </Button>
         ) : null}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 
   return (
     <div className="flex flex-col gap-4">
       <div className="overflow-x-auto rounded-lg border border-border bg-background">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-muted text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Value</th>
-              <th className="px-4 py-3 font-medium">Unit</th>
-              <th className="px-4 py-3 font-medium">Numeric</th>
-              <th className="px-4 py-3 font-medium">Details</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
+        <Table className="min-w-full text-left text-sm">
+          <TableHeader className="bg-muted text-xs uppercase text-muted-foreground">
+            <TableRow>
+              <TableHead className="px-4 py-3 font-medium">Name</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Value</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Unit</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Numeric</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Details</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-border">
             {readOnly
               ? rows.map((row) => (
-                  <tr key={row.id} className="align-top">
-                    <td className="px-4 py-3">
+                  <TableRow key={row.id} className="align-top">
+                    <TableCell className="px-4 py-3">
                       <div className="flex flex-col gap-1">
                         <span className="text-foreground">{row.name_raw}</span>
                         {row.edited_at && (
@@ -141,23 +149,23 @@ export const ReviewGrid = ({
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-foreground">{row.value_raw}</span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-foreground">{row.unit_raw ?? "—"}</span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-foreground">{row.value_num ?? "—"}</span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-muted-foreground">{row.details_raw ?? "—"}</span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-xs text-muted-foreground">Owner only</span>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               : rows.map((row) =>
                   renderEditableRow(
@@ -179,8 +187,8 @@ export const ReviewGrid = ({
               newRows.map((row) =>
                 renderEditableRow(row.id, row.draft, { removable: true }),
               )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

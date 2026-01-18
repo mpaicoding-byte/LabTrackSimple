@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, FileText, Calendar, User } from "lucide-react";
+import { Loader2, FileText, Calendar, User, Calendar as CalendarIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
@@ -10,6 +10,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar as DateCalendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -52,6 +56,27 @@ const wrapWithBoundary = (content: React.ReactNode) => (
   <ErrorBoundary>{content}</ErrorBoundary>
 );
 
+const formatDateValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateValue = (value: string) => {
+  if (!value) return undefined;
+  return new Date(`${value}T00:00:00`);
+};
+
+const formatDateLabel = (value: string) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Pick a date";
+
 export const ReportsManager = () => {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const { session, loading: sessionLoading } = useSession();
@@ -78,6 +103,7 @@ export const ReportsManager = () => {
   // Draft Form State
   const [draftPersonId, setDraftPersonId] = useState("");
   const [draftDate, setDraftDate] = useState("");
+  const [draftDateOpen, setDraftDateOpen] = useState(false);
 
   // Computed
   const peopleById = useMemo(
@@ -220,7 +246,7 @@ export const ReportsManager = () => {
     setDraftError(null);
     // Pre-fill date with today if empty
     if (!draftDate) {
-      setDraftDate(new Date().toISOString().split('T')[0]);
+      setDraftDate(formatDateValue(new Date()));
     }
   };
 
@@ -229,7 +255,7 @@ export const ReportsManager = () => {
     setManualDraftOpen(true);
     setDraftError(null);
     if (!draftDate) {
-      setDraftDate(new Date().toISOString().split('T')[0]);
+      setDraftDate(formatDateValue(new Date()));
     }
   };
 
@@ -239,6 +265,7 @@ export const ReportsManager = () => {
     setDraftPersonId("");
     setDraftDate("");
     setDraftError(null);
+    setDraftDateOpen(false);
   };
 
   const handleSaveDraft = async () => {
@@ -318,6 +345,7 @@ export const ReportsManager = () => {
         tone: "success",
         message: "Upload complete. Running extraction...",
       });
+      toast.success("Report uploaded. Starting extraction...");
       void handleExtractReport(report.id);
 
     } catch (e) {
@@ -325,9 +353,11 @@ export const ReportsManager = () => {
       if (reportId) {
         const message = resolveErrorMessage(e, "Upload failed.");
         setReportNotice(reportId, { tone: "error", message });
+        toast.error(message);
       } else {
         const message = resolveErrorMessage(e, "Upload failed.");
         setDraftError(message);
+        toast.error(message);
       }
     } finally {
       setIsUploading(false);
@@ -359,10 +389,12 @@ export const ReportsManager = () => {
 
       setReports((prev) => [report as ReportRow, ...prev]);
       handleCancelDraft();
+      toast.success("Manual report created.");
       router.push(`/reports/${report.id}/review`);
     } catch (e) {
       const message = resolveErrorMessage(e, "Manual report creation failed.");
       setDraftError(message);
+      toast.error(message);
     } finally {
       setIsUploading(false);
     }
@@ -469,7 +501,7 @@ export const ReportsManager = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">Person</label>
+                  <Label>Person</Label>
                   <div className="flex flex-wrap gap-2">
                     {people.map(p => (
                       <button
@@ -489,14 +521,29 @@ export const ReportsManager = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label htmlFor="report-date" className="text-sm font-medium">Report date</label>
-                  <Input
-                    id="report-date"
-                    aria-label="Report date"
-                    type="date"
-                    value={draftDate}
-                    onChange={(e) => setDraftDate(e.target.value)}
-                  />
+                  <Label htmlFor="report-date">Report date</Label>
+                  <Popover open={draftDateOpen} onOpenChange={setDraftDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="report-date"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formatDateLabel(draftDate)}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <DateCalendar
+                        mode="single"
+                        selected={parseDateValue(draftDate)}
+                        onSelect={(date) => {
+                          setDraftDate(date ? formatDateValue(date) : "");
+                          setDraftDateOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {draftError && (

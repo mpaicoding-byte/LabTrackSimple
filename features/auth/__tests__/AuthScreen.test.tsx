@@ -1,6 +1,7 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { AuthScreen } from "../AuthScreen";
@@ -45,4 +46,18 @@ test("auth screen uses shared loading state while session loads", () => {
   expect(screen.getByTestId("loading-state")).toBeInTheDocument();
 
   sessionState.loading = false;
+});
+
+test("shows validation errors when submitting empty form", async () => {
+  render(<AuthScreen />);
+
+  const form = screen.getByLabelText(/email/i).closest("form");
+  expect(form).not.toBeNull();
+
+  await userEvent.click(
+    within(form as HTMLFormElement).getByRole("button", { name: /sign in/i }),
+  );
+
+  expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
+  expect(screen.getByText(/password is required/i)).toBeInTheDocument();
 });

@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/reports",
@@ -22,25 +23,30 @@ vi.mock("@/features/auth/SessionProvider", () => ({
   }),
 }));
 
-vi.mock("@/features/core/supabaseClient", () => ({
-  getSupabaseBrowserClient: () => ({
-    auth: {
-      signOut: vi.fn().mockResolvedValue({ error: null }),
-    },
+vi.mock("@/features/auth/useAuth", () => ({
+  useAuth: () => ({
+    signOut: vi.fn().mockResolvedValue({ success: true }),
   }),
 }));
 
 test("sidebar uses shadcn token styling", () => {
-  const { container } = render(<AppSidebar />);
+  const { container } = render(
+    <SidebarProvider>
+      <AppSidebar />
+    </SidebarProvider>,
+  );
 
-  const aside = container.querySelector("aside");
-  expect(aside).not.toBeNull();
-  expect(aside).toHaveClass("bg-background");
-  expect(aside).toHaveClass("border-border");
+  const sidebar = container.querySelector('[data-slot="sidebar-inner"]');
+  expect(sidebar).not.toBeNull();
+  expect(sidebar).toHaveClass("bg-sidebar");
 });
 
 test("sidebar includes the trends link", () => {
-  render(<AppSidebar />);
+  render(
+    <SidebarProvider>
+      <AppSidebar />
+    </SidebarProvider>,
+  );
 
   expect(screen.getByRole("link", { name: /trends/i })).toBeInTheDocument();
 });
