@@ -10,20 +10,22 @@ export const formatDate = (value: string | null) => {
 };
 
 export const buildDuplicateDateLabels = (dates: string[]) => {
+  const totals = new Map<string, number>();
+  dates.forEach((date) => {
+    const label = formatDate(date);
+    totals.set(label, (totals.get(label) ?? 0) + 1);
+  });
+
   const seen = new Map<string, number>();
 
   return dates.map((date) => {
     const label = formatDate(date);
+    const total = totals.get(label) ?? 1;
+    if (total <= 1) return label;
     const nextCount = (seen.get(label) ?? 0) + 1;
     seen.set(label, nextCount);
-    return nextCount > 1 ? `-${nextCount}` : label;
+    return `${label} (${nextCount})`;
   });
-};
-
-export const splitDateLabel = (label: string) => {
-  const match = label.match(/^(.+?)(-\d+)$/);
-  if (!match) return [label, null] as const;
-  return [match[1], match[2]] as const;
 };
 
 const buildTrendKey = (name: string, unit: string | null) =>
@@ -79,7 +81,7 @@ export const buildTrendGroups = (rows: TrendRow[]): TrendGroup[] => {
   const groups = Array.from(grouped.values());
 
   groups.forEach((group) => {
-    group.points.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    group.points.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     group.textEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
 

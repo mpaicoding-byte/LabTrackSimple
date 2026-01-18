@@ -169,7 +169,8 @@ Status: In progress (see `docs/current specs/simple-review-flow/`).
 - [x] Numeric chart from `value_num`
 - [x] Text timeline for non-numeric
 - [x] Mixed numeric/text handling UX
-- [ ] Person filter
+- [x] Person filter
+- [x] Trends tabs only show family members with results (no All family tab)
 - [ ] Unit conversion + normalization for mixed units (future)
 
 ### Outputs

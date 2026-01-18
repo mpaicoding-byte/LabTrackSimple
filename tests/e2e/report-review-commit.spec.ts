@@ -189,7 +189,7 @@ test.describe("report review + confirm", () => {
 
     await page.getByRole("button", { name: /discard draft/i }).click();
     await expect(page.getByRole("button", { name: /^edit$/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /add test/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /add test/i })).toBeVisible();
 
     const { data: afterConfirm } = await admin
       .from("lab_results")

@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -22,6 +23,7 @@ type PersonRow = {
 
 type ReportRow = {
   id: string;
+  household_id?: string | null;
   person_id: string;
   report_date: string;
   source: string | null;
@@ -61,6 +63,8 @@ export const ReportsManager = () => {
   const [people, setPeople] = useState<PersonRow[]>([]);
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activePersonId, setActivePersonId] = useState("all");
+  const [memberPersonId, setMemberPersonId] = useState<string | null>(null);
 
   // UI State
   const [draftFile, setDraftFile] = useState<File | null>(null);
@@ -80,6 +84,16 @@ export const ReportsManager = () => {
     () => new Map(people.map((person) => [person.id, person.name])),
     [people],
   );
+
+  const visibleReports = useMemo(() => {
+    if (role !== "owner") {
+      return reports;
+    }
+    if (activePersonId === "all") {
+      return reports;
+    }
+    return reports.filter((report) => report.person_id === activePersonId);
+  }, [activePersonId, reports, role]);
 
   const updateReportStatus = useCallback(
     (reportId: string, status: ReportRow["status"]) => {
@@ -118,21 +132,46 @@ export const ReportsManager = () => {
       setRole(memberData.role);
 
       // 2. Load People
-      const { data: peopleData } = await supabase
+      let peopleQuery = supabase
         .from("people")
         .select("id, name")
         .eq("household_id", memberData.household_id)
         .is("deleted_at", null);
 
-      setPeople(peopleData ?? []);
+      if (memberData.role !== "owner") {
+        peopleQuery = peopleQuery.eq("user_id", session.user.id);
+      }
+
+      const { data: peopleData } = await peopleQuery;
+
+      const nextPeople = peopleData ?? [];
+      setPeople(nextPeople);
+
+      const nextMemberPersonId =
+        memberData.role !== "owner" ? nextPeople[0]?.id ?? null : null;
+      setMemberPersonId(nextMemberPersonId);
+      if (memberData.role !== "owner" && nextMemberPersonId) {
+        setActivePersonId(nextMemberPersonId);
+      }
 
       // 3. Load Reports
-      const { data: reportData } = await supabase
+      let reportQuery = supabase
         .from("lab_reports")
         .select("*")
         .eq("household_id", memberData.household_id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
+        .is("deleted_at", null);
+
+      if (memberData.role !== "owner") {
+        if (!nextMemberPersonId) {
+          setReports([]);
+          return;
+        }
+        reportQuery = reportQuery.eq("person_id", nextMemberPersonId);
+      }
+
+      const { data: reportData } = await reportQuery.order("created_at", {
+        ascending: false,
+      });
 
       setReports(reportData as ReportRow[] ?? []);
 
@@ -146,6 +185,18 @@ export const ReportsManager = () => {
   useEffect(() => {
     if (!sessionLoading) loadInitialData();
   }, [sessionLoading, loadInitialData]);
+
+  useEffect(() => {
+    if (role !== "owner") {
+      if (memberPersonId && activePersonId !== memberPersonId) {
+        setActivePersonId(memberPersonId);
+      }
+      return;
+    }
+    if (activePersonId === "all") return;
+    if (people.some((person) => person.id === activePersonId)) return;
+    setActivePersonId("all");
+  }, [activePersonId, memberPersonId, people, role]);
 
   // Safety Timeout: Force stop loading after 5 seconds to prevent infinite spinner
   useEffect(() => {
@@ -480,6 +531,14 @@ export const ReportsManager = () => {
   }
 
   // View: Dashboard List
+  const tabItems =
+    role === "owner"
+      ? [{ id: "all", label: "All family" }, ...people.map((person) => ({
+        id: person.id,
+        label: person.name,
+      }))]
+      : people.map((person) => ({ id: person.id, label: person.name }));
+
   return wrapWithBoundary(
     <DashboardLayout>
       <div className="flex flex-col gap-8 relative z-10">
@@ -490,12 +549,26 @@ export const ReportsManager = () => {
             <h1 className="text-3xl font-bold text-foreground mb-2">Lab Reports</h1>
             <p className="text-muted-foreground text-lg">Review and organize your medical history.</p>
           </div>
-          {role === "owner" && (
-            <Button variant="outline" onClick={handleOpenManualDraft}>
-              Add tests manually
-            </Button>
-          )}
-        </div>
+        {role === "owner" && (
+          <Button variant="outline" onClick={handleOpenManualDraft}>
+            Add tests manually
+          </Button>
+        )}
+      </div>
+
+        {tabItems.length > 0 && (
+          <div className="overflow-x-auto">
+            <Tabs value={activePersonId} onValueChange={setActivePersonId}>
+              <TabsList className="w-full justify-start gap-1">
+                {tabItems.map((tab) => (
+                  <TabsTrigger key={tab.id} value={tab.id}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
 
         {/* Action: Dropzone */}
         {role === "owner" && (
@@ -505,11 +578,11 @@ export const ReportsManager = () => {
         )}
 
         {/* List */}
-        <div className="grid gap-4">
-          {reports.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-border bg-muted/30">
-              <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mb-4 text-muted-foreground">
-                <FileText className="h-8 w-8" />
+        <div className="grid gap-3">
+          {visibleReports.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-border bg-muted/30">
+              <div className="h-12 w-12 bg-muted rounded-xl flex items-center justify-center mb-3 text-muted-foreground">
+                <FileText className="h-6 w-6" />
               </div>
               <p className="text-muted-foreground font-medium">No reports found.</p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -517,7 +590,7 @@ export const ReportsManager = () => {
               </p>
             </div>
           ) : (
-            reports.map((report) => {
+            visibleReports.map((report) => {
               const notice = reportNotices[report.id];
               const isExtracting = Boolean(extractingReports[report.id]);
               const statusLabel =
@@ -531,15 +604,15 @@ export const ReportsManager = () => {
 
               return (
                 <Card key={report.id} className="group overflow-hidden">
-                  <div className="flex flex-wrap items-center gap-5 p-5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground border border-border">
-                      <FileText className="h-6 w-6" />
+                  <div className="flex flex-wrap items-center gap-3 p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground border border-border">
+                      <FileText className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-foreground text-lg">
+                      <h3 className="font-semibold text-foreground text-base">
                         {peopleById.get(report.person_id) ?? "Unknown"}
                       </h3>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5" />
                           {new Date(report.report_date).toLocaleDateString()}

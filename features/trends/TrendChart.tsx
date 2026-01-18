@@ -8,7 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { TextEntry, TrendPoint } from "./types";
-import { buildDuplicateDateLabels } from "./utils";
+import { buildDuplicateDateLabels, formatDate } from "./utils";
 
 type TrendSparklineProps = {
   points: TrendPoint[];
@@ -68,6 +68,7 @@ export const TrendSparkline = ({
 
   const renderPoints = points;
   const dateLabels = buildDuplicateDateLabels(renderPoints.map((point) => point.date));
+
   const chartData = renderPoints.map((point, index) => ({
     index,
     dateLabel: dateLabels[index],
@@ -80,8 +81,7 @@ export const TrendSparkline = ({
   const widthPerPoint = compact ? COMPACT_WIDTH_PER_POINT : FULL_WIDTH_PER_POINT;
   const margins = compact ? COMPACT_CHART_MARGINS : FULL_CHART_MARGINS;
   const spacingCount = Math.max(1, renderPoints.length - 1);
-  const chartWidth =
-    spacingCount * widthPerPoint + margins.left + margins.right;
+  const chartWidth = spacingCount * widthPerPoint + margins.left + margins.right;
   const tickIndexes = renderPoints.map((_, index) => index);
   const yValues = renderPoints
     .map((point) => point.value)
@@ -93,7 +93,7 @@ export const TrendSparkline = ({
 
   return (
     <div
-      className="overflow-x-auto max-w-full"
+      className="overflow-x-auto max-w-full pb-2"
       role="img"
       aria-label={ariaLabel ?? "Trend chart"}
     >
@@ -113,18 +113,11 @@ export const TrendSparkline = ({
           margin={margins}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <YAxis
-            type="number"
-            domain={[yMin, yMax]}
-            ticks={yTicks}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={6}
-            fontSize={9}
-          />
+          <YAxis hide domain={[yMin, yMax]} />
           <XAxis
             dataKey="index"
             type="number"
+            domain={[0, Math.max(0, points.length - 1)]}
             ticks={tickIndexes}
             tickFormatter={(value) => chartData[Number(value)]?.dateLabel ?? ""}
             tickLine={false}

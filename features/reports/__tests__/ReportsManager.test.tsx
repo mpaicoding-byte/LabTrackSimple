@@ -22,6 +22,8 @@ vi.mock("next/navigation", () => ({
 type PersonRow = {
   id: string;
   name: string;
+  user_id?: string | null;
+  household_id?: string | null;
 };
 
 type ReportRow = {
@@ -35,6 +37,39 @@ type ReportRow = {
 
 let peopleData: PersonRow[] = [];
 let reportsData: ReportRow[] = [];
+let memberData: { household_id: string; role: string } | null = null;
+
+const applyPeopleFilters = (
+  data: PersonRow[],
+  filters: Map<string, unknown>,
+) => {
+  let filtered = data;
+  if (filters.has("user_id")) {
+    const userId = filters.get("user_id");
+    filtered = filtered.filter((row) => row.user_id === userId);
+  }
+  if (filters.has("household_id")) {
+    const householdId = filters.get("household_id");
+    filtered = filtered.filter((row) => row.household_id === householdId);
+  }
+  return filtered;
+};
+
+const applyReportFilters = (
+  data: ReportRow[],
+  filters: Map<string, unknown>,
+) => {
+  let filtered = data;
+  if (filters.has("person_id")) {
+    const personId = filters.get("person_id");
+    filtered = filtered.filter((row) => row.person_id === personId);
+  }
+  if (filters.has("household_id")) {
+    const householdId = filters.get("household_id");
+    filtered = filtered.filter((row) => row.household_id === householdId);
+  }
+  return filtered;
+};
 
 const insertReportMock = vi.fn((payload: unknown) => {
   const row = Array.isArray(payload) ? payload[0] : payload;
@@ -101,35 +136,59 @@ const invokeMock = vi.fn().mockResolvedValue({
 const supabaseMock = {
   from: vi.fn((table: string) => {
     if (table === "household_members") {
-      return {
+      const filters = new Map<string, unknown>();
+      const chain = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
+        eq: vi.fn((key: string, value: unknown) => {
+          filters.set(key, value);
+          return chain;
+        }),
         is: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({
-          data: { household_id: "household-1", role: "owner" },
+          data: memberData,
           error: null,
         }),
       };
+      return chain;
     }
 
     if (table === "people") {
-      return {
+      const filters = new Map<string, unknown>();
+      const chain = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        is: vi.fn().mockResolvedValue({ data: peopleData, error: null }),
-        order: vi.fn().mockResolvedValue({ data: peopleData, error: null }),
+        eq: vi.fn((key: string, value: unknown) => {
+          filters.set(key, value);
+          return chain;
+        }),
+        is: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({
+          data: applyPeopleFilters(peopleData, filters),
+          error: null,
+        }),
+        then: (resolve: (value: { data: PersonRow[]; error: null }) => void) => {
+          resolve({ data: applyPeopleFilters(peopleData, filters), error: null });
+        },
       };
+      return chain;
     }
 
     if (table === "lab_reports") {
-      return {
+      const filters = new Map<string, unknown>();
+      const chain = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
+        eq: vi.fn((key: string, value: unknown) => {
+          filters.set(key, value);
+          return chain;
+        }),
         is: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: reportsData, error: null }),
+        order: vi.fn().mockResolvedValue({
+          data: applyReportFilters(reportsData, filters),
+          error: null,
+        }),
         insert: insertReportMock,
         update: updateReportMock,
       };
+      return chain;
     }
 
     if (table === "lab_artifacts") {
@@ -185,9 +244,12 @@ beforeEach(() => {
     {
       id: "person-1",
       name: "Ada Lovelace",
+      user_id: "user-1",
+      household_id: "household-1",
     },
   ];
   reportsData = [];
+  memberData = { household_id: "household-1", role: "owner" };
   vi.clearAllMocks();
 });
 
@@ -370,6 +432,7 @@ test("owners do not see delete action in the report list", async () => {
   reportsData = [
     {
       id: "report-1",
+      household_id: "household-1",
       person_id: "person-1",
       report_date: "2024-02-01",
       source: "Uploaded via Web",
@@ -393,12 +456,13 @@ test("owners do not see delete action in the report list", async () => {
 
 test("shows view for final reports and review for reports needing review", async () => {
   peopleData = [
-    { id: "person-1", name: "Ada Lovelace" },
-    { id: "person-2", name: "Grace Hopper" },
+    { id: "person-1", name: "Ada Lovelace", household_id: "household-1" },
+    { id: "person-2", name: "Grace Hopper", household_id: "household-1" },
   ];
   reportsData = [
     {
       id: "report-final",
+      household_id: "household-1",
       person_id: "person-1",
       report_date: "2024-01-10",
       source: "Uploaded via Web",
@@ -407,6 +471,7 @@ test("shows view for final reports and review for reports needing review", async
     },
     {
       id: "report-review",
+      household_id: "household-1",
       person_id: "person-2",
       report_date: "2024-02-01",
       source: "Uploaded via Web",
@@ -432,4 +497,90 @@ test("shows view for final reports and review for reports needing review", async
   expect(
     within(reviewCard as HTMLElement).getByRole("link", { name: /review/i }),
   ).toBeVisible();
+});
+
+test("filters reports by family member tab for owners", async () => {
+  const user = userEvent.setup();
+
+  peopleData = [
+    { id: "person-1", name: "Ada Lovelace", household_id: "household-1" },
+    { id: "person-2", name: "Grace Hopper", household_id: "household-1" },
+  ];
+  reportsData = [
+    {
+      id: "report-1",
+      household_id: "household-1",
+      person_id: "person-1",
+      report_date: "2024-01-10",
+      source: "Uploaded via Web",
+      status: "final",
+      created_at: "2024-01-10T00:00:00Z",
+    },
+    {
+      id: "report-2",
+      household_id: "household-1",
+      person_id: "person-2",
+      report_date: "2024-02-01",
+      source: "Uploaded via Web",
+      status: "review_required",
+      created_at: "2024-02-01T00:00:00Z",
+    },
+  ];
+
+  render(<ReportsManager />);
+
+  expect(await screen.findByRole("tab", { name: /all family/i })).toBeInTheDocument();
+  await screen.findByRole("tab", { name: /ada lovelace/i });
+  await screen.findByRole("tab", { name: /grace hopper/i });
+
+  await user.click(screen.getByRole("tab", { name: /ada lovelace/i }));
+  expect(await screen.findByRole("heading", { name: /ada lovelace/i })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /grace hopper/i })).toBeNull();
+});
+
+test("members only see their own reports tab", async () => {
+  memberData = { household_id: "household-1", role: "member" };
+  peopleData = [
+    {
+      id: "person-1",
+      name: "Ada Lovelace",
+      user_id: "user-1",
+      household_id: "household-1",
+    },
+    {
+      id: "person-2",
+      name: "Grace Hopper",
+      user_id: "user-2",
+      household_id: "household-1",
+    },
+  ];
+  reportsData = [
+    {
+      id: "report-1",
+      household_id: "household-1",
+      person_id: "person-1",
+      report_date: "2024-01-10",
+      source: "Uploaded via Web",
+      status: "final",
+      created_at: "2024-01-10T00:00:00Z",
+    },
+    {
+      id: "report-2",
+      household_id: "household-1",
+      person_id: "person-2",
+      report_date: "2024-02-01",
+      source: "Uploaded via Web",
+      status: "review_required",
+      created_at: "2024-02-01T00:00:00Z",
+    },
+  ];
+
+  render(<ReportsManager />);
+
+  expect(await screen.findByRole("tab", { name: /ada lovelace/i })).toBeInTheDocument();
+  expect(screen.queryByRole("tab", { name: /all family/i })).toBeNull();
+  expect(screen.queryByRole("tab", { name: /grace hopper/i })).toBeNull();
+
+  expect(await screen.findByRole("heading", { name: /ada lovelace/i })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /grace hopper/i })).toBeNull();
 });

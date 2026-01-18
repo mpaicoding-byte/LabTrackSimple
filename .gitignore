@@ -43,3 +43,4 @@ yarn-error.log*
 next-env.d.ts
 
 /tmp/
+docs/ux_revamp_shadcn.md
