@@ -48,6 +48,9 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     previewUrl,
   } = useReviewData(resolvedReportId);
 
+  const [manualRunId, setManualRunId] = useState<string | null>(null);
+  const effectiveRunId = runId ?? manualRunId;
+
   const [notice, setNotice] = useState<ReportNotice | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -73,7 +76,7 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     supabase,
     reportId: resolvedReportId,
     personId: report?.person_id ?? null,
-    runId,
+    runId: effectiveRunId,
     rows,
     setRows,
     setNotice,
@@ -90,11 +93,70 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
   const canEnterEdit = role === "owner" && isFinal && !isEditingFinal;
   const canDiscardDraft = role === "owner" && isFinal && isEditingFinal;
 
+  const ensureRunId = useCallback(async () => {
+    if (effectiveRunId || !resolvedReportId || !session?.user.id) {
+      return effectiveRunId;
+    }
+
+    const { data: createdRun, error: runError } = await supabase
+      .from("extraction_runs")
+      .insert({
+        lab_report_id: resolvedReportId,
+        status: "ready",
+        created_by: session.user.id,
+      })
+      .select("id")
+      .single();
+
+    if (runError || !createdRun?.id) {
+      setNotice({
+        tone: "error",
+        message: runError?.message ?? "Unable to start a manual review.",
+      });
+      return null;
+    }
+
+    const { error: reportError } = await supabase
+      .from("lab_reports")
+      .update({ current_extraction_run_id: createdRun.id })
+      .eq("id", resolvedReportId);
+
+    if (reportError) {
+      setNotice({
+        tone: "error",
+        message: reportError.message ?? "Unable to link the manual review.",
+      });
+      return null;
+    }
+
+    setManualRunId(createdRun.id);
+    return createdRun.id;
+  }, [effectiveRunId, resolvedReportId, session?.user.id, supabase]);
+
+  const handleAddRowClick = async () => {
+    const ensured = await ensureRunId();
+    if (!ensured && !effectiveRunId) {
+      return;
+    }
+    if (!canEdit && canEnterEdit) {
+      setIsEditingFinal(true);
+    }
+    handleAddRow();
+  };
+
+  const handleCommitClick = async () => {
+    const ensured = await ensureRunId();
+    if (!ensured && !effectiveRunId) {
+      return;
+    }
+    await handleCommit();
+  };
+
   const canCommit =
     canEdit &&
     !commitSaving &&
     totalRows > 0 &&
-    Boolean(runId);
+    Boolean(effectiveRunId);
 
   const canDelete = role === "owner" && Boolean(report?.id);
 
@@ -146,7 +208,7 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
     );
   }
 
-  if (!runId) {
+  if (!effectiveRunId && role !== "owner") {
     return wrapWithBoundary(
       <DashboardLayout>
         <ReviewEmptyState />
@@ -219,8 +281,8 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
                       Edit
                     </Button>
                   )}
-                  {canEdit && (
-                    <Button variant="outline" onClick={handleAddRow}>
+                  {(canEdit || canEnterEdit) && (
+                    <Button variant="outline" onClick={handleAddRowClick}>
                       Add test
                     </Button>
                   )}
@@ -237,7 +299,7 @@ export const ReviewManager = ({ reportId }: { reportId?: string }) => {
                     </Button>
                   )}
                   {canEdit && (
-                    <Button onClick={handleCommit} disabled={!canCommit}>
+                    <Button onClick={handleCommitClick} disabled={!canCommit}>
                       {commitSaving && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}

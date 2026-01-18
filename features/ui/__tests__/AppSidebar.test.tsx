@@ -1,6 +1,6 @@
 "use client";
 
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -37,4 +37,10 @@ test("sidebar uses shadcn token styling", () => {
   expect(aside).not.toBeNull();
   expect(aside).toHaveClass("bg-background");
   expect(aside).toHaveClass("border-border");
+});
+
+test("sidebar includes the trends link", () => {
+  render(<AppSidebar />);
+
+  expect(screen.getByRole("link", { name: /trends/i })).toBeInTheDocument();
 });

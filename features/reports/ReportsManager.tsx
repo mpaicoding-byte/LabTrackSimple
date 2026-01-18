@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, FileText, Calendar, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -64,10 +64,12 @@ export const ReportsManager = () => {
 
   // UI State
   const [draftFile, setDraftFile] = useState<File | null>(null);
+  const [manualDraftOpen, setManualDraftOpen] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [extractingReports, setExtractingReports] = useState<Record<string, boolean>>({});
   const [reportNotices, setReportNotices] = useState<Record<string, ReportNotice>>({});
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   // Draft Form State
   const [draftPersonId, setDraftPersonId] = useState("");
@@ -162,6 +164,7 @@ export const ReportsManager = () => {
   // --- Actions ---
 
   const handleFileSelect = (file: File) => {
+    setManualDraftOpen(false);
     setDraftFile(file);
     setDraftError(null);
     // Pre-fill date with today if empty
@@ -170,8 +173,18 @@ export const ReportsManager = () => {
     }
   };
 
+  const handleOpenManualDraft = () => {
+    setDraftFile(null);
+    setManualDraftOpen(true);
+    setDraftError(null);
+    if (!draftDate) {
+      setDraftDate(new Date().toISOString().split('T')[0]);
+    }
+  };
+
   const handleCancelDraft = () => {
     setDraftFile(null);
+    setManualDraftOpen(false);
     setDraftPersonId("");
     setDraftDate("");
     setDraftError(null);
@@ -270,6 +283,40 @@ export const ReportsManager = () => {
     }
   };
 
+  const handleSaveManualReport = async () => {
+    if (!householdId || !draftPersonId || !draftDate) return;
+
+    setIsUploading(true);
+    setDraftError(null);
+
+    try {
+      const { data: report, error } = await supabase
+        .from("lab_reports")
+        .insert({
+          household_id: householdId,
+          person_id: draftPersonId,
+          report_date: draftDate,
+          source: "Manual entry",
+          status: "review_required",
+        })
+        .select()
+        .single();
+
+      if (error || !report) {
+        throw error ?? new Error("Failed to create manual report.");
+      }
+
+      setReports((prev) => [report as ReportRow, ...prev]);
+      handleCancelDraft();
+      router.push(`/reports/${report.id}/review`);
+    } catch (e) {
+      const message = resolveErrorMessage(e, "Manual report creation failed.");
+      setDraftError(message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleExtractReport = useCallback(
     async (reportId: string) => {
       setExtractingReports((prev) => ({ ...prev, [reportId]: true }));
@@ -342,15 +389,25 @@ export const ReportsManager = () => {
   }
 
   // View: Draft Mode (Overlay)
-  if (draftFile) {
+  if (draftFile || manualDraftOpen) {
+    const isManualDraft = manualDraftOpen && !draftFile;
+
     return wrapWithBoundary(
       <DashboardLayout>
         <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <header className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">New Report from File</h1>
-            <p className="text-muted-foreground">
-              {draftFile.name} ({Math.round(draftFile.size / 1024)} KB)
-            </p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              {isManualDraft ? "Manual report" : "New Report from File"}
+            </h1>
+            {draftFile ? (
+              <p className="text-muted-foreground">
+                {draftFile.name} ({Math.round(draftFile.size / 1024)} KB)
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                Create a report and add tests manually.
+              </p>
+            )}
           </header>
 
           <div className="grid gap-8">
@@ -398,12 +455,12 @@ export const ReportsManager = () => {
                 <div className="pt-4 flex gap-3">
                   <Button
                     size="lg"
-                    onClick={handleSaveDraft}
+                    onClick={isManualDraft ? handleSaveManualReport : handleSaveDraft}
                     disabled={isUploading || !draftPersonId || !draftDate}
                     className="w-full"
                   >
                     {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Report
+                    {isManualDraft ? "Create manual report" : "Save Report"}
                   </Button>
                   <Button
                     size="lg"
@@ -433,12 +490,17 @@ export const ReportsManager = () => {
             <h1 className="text-3xl font-bold text-foreground mb-2">Lab Reports</h1>
             <p className="text-muted-foreground text-lg">Review and organize your medical history.</p>
           </div>
+          {role === "owner" && (
+            <Button variant="outline" onClick={handleOpenManualDraft}>
+              Add tests manually
+            </Button>
+          )}
         </div>
 
         {/* Action: Dropzone */}
         {role === "owner" && (
           <div className="group relative rounded-2xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:bg-muted/50">
-            <FileDropzone onFileSelect={handleFileSelect} />
+            <FileDropzone onFileSelect={handleFileSelect} inputRef={uploadInputRef} />
           </div>
         )}
 

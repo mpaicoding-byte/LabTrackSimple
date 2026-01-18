@@ -57,6 +57,11 @@ are stored in the private `lab-artifacts` bucket and are viewed via signed URLs.
 Storage policies are documented in
 `docs/archived specs/reports-artifacts/reports_artifacts_storage_policy.md`.
 
+## Trends
+
+View consolidated trends at `/trends`. The page groups results by test name
+and shows numeric sparklines alongside text-only results.
+
 ## Stack
 
 - Next.js App Router (TypeScript)

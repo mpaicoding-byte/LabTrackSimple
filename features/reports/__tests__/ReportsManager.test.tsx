@@ -208,6 +208,56 @@ test("does not crash when the session becomes null", async () => {
   });
 });
 
+test("shows an add tests manually action for owners", async () => {
+  render(<ReportsManager />);
+
+  await screen.findByRole("heading", { name: /lab reports/i });
+
+  expect(
+    screen.getByRole("button", { name: /add tests manually/i }),
+  ).toBeInTheDocument();
+});
+
+test("owners can create a manual report from the reports page", async () => {
+  render(<ReportsManager />);
+
+  await userEvent.click(
+    await screen.findByRole("button", { name: /add tests manually/i }),
+  );
+
+  await screen.findByRole("heading", { name: /manual report/i });
+
+  await userEvent.click(
+    await screen.findByRole("button", { name: /ada lovelace/i }),
+  );
+
+  const dateInput = screen.getByLabelText(/report date/i);
+  await userEvent.clear(dateInput);
+  await userEvent.type(dateInput, "2024-01-12");
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /create manual report/i }),
+  );
+
+  await waitFor(() => {
+    expect(insertReportMock).toHaveBeenCalled();
+  });
+
+  expect(insertReportMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      household_id: "household-1",
+      person_id: "person-1",
+      report_date: "2024-01-12",
+      source: "Manual entry",
+      status: "review_required",
+    }),
+  );
+
+  await waitFor(() => {
+    expect(pushMock).toHaveBeenCalledWith("/reports/report-1/review");
+  });
+});
+
 test("owners can save a report from a file, upload its artifact, and auto-extract", async () => {
   vi.stubGlobal("crypto", {
     randomUUID: () => "artifact-123",
@@ -368,9 +418,6 @@ test("shows view for final reports and review for reports needing review", async
   render(<ReportsManager />);
 
   await screen.findByRole("heading", { name: /lab reports/i });
-  expect(
-    screen.queryByRole("button", { name: /create manual report/i }),
-  ).toBeNull();
 
   const finalHeading = screen.getByRole("heading", { name: /ada lovelace/i });
   const finalCard = finalHeading.closest(".group");

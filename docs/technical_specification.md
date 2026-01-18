@@ -193,7 +193,8 @@ Note: for child tables, exclude rows whose parent is soft-deleted (via views or 
 ### 6.1 Report Creation
 - Form: `person_id`, `report_date`, `source`.
 - Artifact upload list with status.
-- Manual test entry happens during review; there is no separate manual report creation flow.
+- Owners can also start a manual report from the reports list to add tests without an upload.
+- Manual test entry still happens during review via "Add test".
 
 ### 6.2 Extraction Review
 - Always-editable grid for owners during review (`name_raw`, `value_raw`, `unit_raw`, `value_num`, `details_raw`); members are view-only.

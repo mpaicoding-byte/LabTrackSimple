@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 type FileDropzoneProps = {
     onFileSelect: (file: File) => void;
     disabled?: boolean;
+    inputRef?: React.RefObject<HTMLInputElement>;
 };
 
-export function FileDropzone({ onFileSelect, disabled }: FileDropzoneProps) {
+export function FileDropzone({ onFileSelect, disabled, inputRef }: FileDropzoneProps) {
     const [isDragActive, setIsDragActive] = useState(false);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -57,6 +58,7 @@ export function FileDropzone({ onFileSelect, disabled }: FileDropzoneProps) {
                 type="file"
                 aria-label="Report file"
                 className="absolute inset-0 cursor-pointer opacity-0"
+                ref={inputRef}
                 onChange={handleChange}
                 accept="application/pdf,image/*"
                 disabled={disabled}

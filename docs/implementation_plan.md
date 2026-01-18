@@ -85,6 +85,7 @@ Status: Revising (upload-first UX; see `docs/UX_REVAMP_Checklist.md`).
 
 ### Checklist
 - [x] Report creation form (person, date, source, notes)
+- [x] Reports list shows manual report CTA for owners
 - [x] `lab_artifacts` row-first upload flow implemented
 - [x] Private storage bucket configured
 - [x] Signed URL viewing for artifacts
@@ -164,11 +165,12 @@ Status: In progress (see `docs/current specs/simple-review-flow/`).
 ## Phase 6 — Trends + Search
 
 ### Checklist
-- [ ] Search by `name_raw` (ILIKE)
-- [ ] Numeric chart from `value_num`
-- [ ] Text timeline for non-numeric
-- [ ] Mixed numeric/text handling UX
+- [x] Search by `name_raw` (ILIKE)
+- [x] Numeric chart from `value_num`
+- [x] Text timeline for non-numeric
+- [x] Mixed numeric/text handling UX
 - [ ] Person filter
+- [ ] Unit conversion + normalization for mixed units (future)
 
 ### Outputs
 - Trends/search page with chart + timeline

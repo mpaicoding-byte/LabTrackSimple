@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Home, FileText, Users, Settings, LogOut, LogIn, TestTube2 } from "lucide-react";
+import { Home, FileText, Users, Settings, LogOut, LogIn, TestTube2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { getSupabaseBrowserClient } from "@/features/core/supabaseClient";
 const NAV_ITEMS = [
     { label: "Dashboard", href: "/", icon: Home },
     { label: "Reports", href: "/reports", icon: FileText },
+    { label: "Trends", href: "/trends", icon: TrendingUp },
     { label: "Family / People", href: "/people", icon: Users },
     { label: "Settings", href: "/settings", icon: Settings },
 ];

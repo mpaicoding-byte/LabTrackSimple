@@ -46,6 +46,7 @@ Note: members see data only after the owner links their account to a person prof
 
 ### 3.2 Reports
 - Create report with date and optional source.
+- Owners can start a manual report without an upload to add tests manually.
 - Add manual tests during review when needed.
 - View report status: `draft`, `review_required`, `final`, `extraction_failed`.
 - Attach one or more artifacts to a report.

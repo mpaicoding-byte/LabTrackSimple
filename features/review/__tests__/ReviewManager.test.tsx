@@ -50,6 +50,7 @@ const buildSupabaseMock = ({
   role = "owner",
   reportStatus = "review_required",
   reportDeletedAt = null,
+  currentRunId = "run-1",
   runRow = { id: "run-1", status: "ready" },
   resultRows = [],
   artifactRow = null,
@@ -76,6 +77,12 @@ const buildSupabaseMock = ({
         },
       ],
       error: null,
+    })),
+  }));
+
+  const insertRunMock = vi.fn(() => ({
+    select: vi.fn(() => ({
+      single: vi.fn(async () => ({ data: { id: "run-new" }, error: null })),
     })),
   }));
 
@@ -116,6 +123,7 @@ const buildSupabaseMock = ({
             ...reportRow,
             status: reportStatus,
             deleted_at: reportDeletedAt,
+            current_extraction_run_id: currentRunId,
           }),
           update: updateMock,
         };
@@ -129,6 +137,7 @@ const buildSupabaseMock = ({
         return {
           ...buildQuery(runRow),
           update: updateMock,
+          insert: insertRunMock,
         };
       }
 
@@ -155,7 +164,14 @@ const buildSupabaseMock = ({
       invoke: invokeMock,
     },
     rpc: rpcMock,
-    _mocks: { insertMock, updateMock, invokeMock, createSignedUrlMock, rpcMock },
+    _mocks: {
+      insertMock,
+      updateMock,
+      invokeMock,
+      createSignedUrlMock,
+      rpcMock,
+      insertRunMock,
+    },
   };
 };
 
@@ -213,7 +229,7 @@ test("final report enters draft mode on edit", async () => {
   expect(await screen.findByText("Glucose")).toBeVisible();
   expect(screen.getByRole("button", { name: /edit/i })).toBeVisible();
   expect(screen.queryByRole("button", { name: /review & confirm/i })).toBeNull();
-  expect(screen.queryByRole("button", { name: /add test/i })).toBeNull();
+  expect(screen.getByRole("button", { name: /add test/i })).toBeVisible();
   expect(screen.queryByLabelText(/name/i)).toBeNull();
 
   await user.click(screen.getByRole("button", { name: /edit/i }));
@@ -221,7 +237,50 @@ test("final report enters draft mode on edit", async () => {
   expect(await screen.findByRole("button", { name: /discard draft/i })).toBeVisible();
   expect(screen.getByRole("button", { name: /review & confirm/i })).toBeVisible();
   expect(screen.getByRole("button", { name: /add test/i })).toBeVisible();
-  expect(screen.getByLabelText(/name/i)).toBeVisible();
+  expect(screen.getAllByLabelText(/name/i).length).toBeGreaterThan(0);
+});
+
+test("final report allows adding a test directly", async () => {
+  const user = userEvent.setup();
+
+  renderReview({
+    reportStatus: "final",
+    resultRows: [
+      {
+        id: "row-1",
+        name_raw: "Glucose",
+        value_raw: "90",
+        unit_raw: "mg/dL",
+        value_num: 90,
+        details_raw: null,
+        edited_at: null,
+      },
+    ],
+  });
+
+  expect(await screen.findByText("Glucose")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: /add test/i }));
+
+  expect(screen.getAllByLabelText(/name/i).length).toBeGreaterThan(1);
+  expect(screen.getByRole("button", { name: /review & confirm/i })).toBeVisible();
+});
+
+test("owner can add a test when no extraction run exists", async () => {
+  const user = userEvent.setup();
+
+  renderReview({
+    currentRunId: null,
+    resultRows: [],
+  });
+
+  expect(await screen.findByText(/review results/i)).toBeVisible();
+  expect(screen.getByRole("button", { name: /add test/i })).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: /add test/i }));
+
+  expect(supabaseMock._mocks.insertRunMock).toHaveBeenCalled();
+  expect(screen.getAllByLabelText(/name/i).length).toBeGreaterThan(0);
 });
 
 test("confirm saves pending edits and marks edited", async () => {
